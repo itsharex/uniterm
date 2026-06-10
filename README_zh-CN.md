@@ -2,6 +2,7 @@
   <img src="build/appicon.png" alt="uniTerm" width="128" height="128" />
   <h1>uniTerm</h1>
   <p>一款现代化跨平台终端模拟器，内置可自主执行的 AI Agent —— 能够像 Claude Code 一样独立规划并执行多轮 Shell 命令。</p>
+  <p><a href="https://ys-ll.github.io/uniterm/">🌐 软件首页</a> &nbsp;|&nbsp; <a href="https://github.com/ys-ll/uniterm">💻 GitHub</a></p>
 </div>
 
 [English](README.md)

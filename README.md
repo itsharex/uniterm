@@ -2,6 +2,7 @@
   <img src="build/appicon.png" alt="uniTerm" width="128" height="128" />
   <h1>uniTerm</h1>
   <p>A modern cross-platform terminal emulator with a built-in autonomous AI Agent — capable of independently planning and executing multi-turn shell commands, like Claude Code for your terminal.</p>
+  <p><a href="https://ys-ll.github.io/uniterm/">🌐 Homepage</a> &nbsp;|&nbsp; <a href="https://github.com/ys-ll/uniterm">💻 GitHub</a></p>
 </div>
 
 [简体中文](README_zh-CN.md)
