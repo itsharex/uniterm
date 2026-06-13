@@ -257,6 +257,55 @@ export async function collectOutput(
   })
 }
 
+interface SendKeyResult {
+  output: string
+}
+
+export async function sendTerminalKey(
+  input?: string,
+  control?: 'ctrl_c' | 'ctrl_d' | 'enter'
+): Promise<SendKeyResult> {
+  const { sessionId, shellPath } = resolveActiveSession()
+
+  let data: string
+  if (control) {
+    if (control === 'ctrl_c') {
+      data = '\x03'
+    } else if (control === 'ctrl_d') {
+      data = '\x04'
+    } else if (control === 'enter') {
+      data = '\n'
+    } else {
+      data = ''
+    }
+  } else if (input !== undefined && input !== '') {
+    data = input
+  } else {
+    throw new Error('Either input or control must be provided')
+  }
+
+  await SessionWrite(sessionId, data)
+
+  // Queue a short marker to capture immediate response
+  const marker = `__AI_KEY_${Date.now()}_${Math.random().toString(36).slice(2, 8)}__`
+  const lowerShell = (shellPath || '').toLowerCase()
+  let markerCmd: string
+  if (lowerShell.includes('powershell') || lowerShell.includes('pwsh')) {
+    markerCmd = `Write-Output "${marker}"`
+  } else if (lowerShell.includes('cmd')) {
+    markerCmd = `echo ${marker}`
+  } else {
+    markerCmd = `echo "${marker}"`
+  }
+
+  await SessionWrite(sessionId, markerCmd + getShellNewline(shellPath))
+
+  const { promise } = watchOutput(sessionId, marker, 5000)
+  const result = await promise
+
+  return { output: result.output || '(input sent)' }
+}
+
 function buildCommand(command: string, marker: string, shellPath?: string): string {
   const lower = (shellPath || '').toLowerCase()
   if (lower.includes('powershell') || lower.includes('pwsh')) {
