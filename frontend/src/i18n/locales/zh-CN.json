@@ -123,6 +123,8 @@
   "ai.copyFailed": "复制失败",
   "ai.maximize": "最大化",
   "ai.restore": "恢复",
+  "ai.search": "搜索",
+  "ai.searchPlaceholder": "搜索对话内容...",
   "ai.tool.executeCommand": "执行命令",
   "ai.tool.startCommand": "启动命令",
   "ai.tool.captureTerminal": "查看终端",

@@ -80,7 +80,7 @@ import { useAIStore } from '../stores/aiStore'
 import { useI18n } from '../i18n'
 import type { AIMessage } from '../types/ai'
 
-const props = defineProps<{ message: AIMessage }>()
+const props = defineProps<{ message: AIMessage; searchText?: string }>()
 const emit = defineEmits<{
   (e: 'approve', messageId: string): void
   (e: 'reject', messageId: string): void
@@ -296,12 +296,41 @@ function renderMarkdown(text: string): string {
   return html
 }
 
-const renderedContent = computed(() => {
-  // User messages: plain text, no markdown
-  if (props.message.role === 'user') {
-    return escapeHtml(props.message.content)
+function highlightText(html: string, query: string): string {
+  if (!query) return html
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(escaped, 'gi')
+  // Split on < to isolate text from HTML tags.
+  // Even-indexed segments (after join) are outside tags; odd are inside.
+  // Segment 0 is text before first <
+  // Segment N after < contains: tag till > then text
+  const parts = html.split('<')
+  let result = parts[0].replace(regex, '<mark class="ai-search-highlight">$&</mark>')
+  for (let i = 1; i < parts.length; i++) {
+    const gt = parts[i].indexOf('>')
+    if (gt === -1) {
+      // Malformed — no closing >, treat entire segment as text
+      result += '<' + parts[i].replace(regex, '<mark class="ai-search-highlight">$&</mark>')
+    } else {
+      const tag = parts[i].slice(0, gt + 1)
+      const text = parts[i].slice(gt + 1)
+      result += '<' + tag + text.replace(regex, '<mark class="ai-search-highlight">$&</mark>')
+    }
   }
-  return renderMarkdown(props.message.content)
+  return result
+}
+
+const renderedContent = computed(() => {
+  let html: string
+  if (props.message.role === 'user') {
+    html = escapeHtml(props.message.content)
+  } else {
+    html = renderMarkdown(props.message.content)
+  }
+  if (props.searchText) {
+    html = highlightText(html, props.searchText)
+  }
+  return html
 })
 
 function escapeHtml(text: string): string {
@@ -314,6 +343,18 @@ function escapeHtml(text: string): string {
 </script>
 
 <style scoped>
+/* Search highlights — :deep() needed because mark tags are injected via v-html */
+:deep(mark.ai-search-highlight) {
+  background: rgba(250, 204, 21, 0.4);
+  color: inherit;
+  border-radius: 2px;
+}
+:deep(mark.ai-search-highlight.active) {
+  background: rgba(250, 204, 21, 0.6);
+  color: inherit;
+  outline: 2px solid var(--warning);
+  border-radius: 2px;
+}
 .ai-message {
   display: flex;
   gap: 10px;

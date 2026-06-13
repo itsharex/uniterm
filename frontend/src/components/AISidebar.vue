@@ -21,6 +21,9 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
+        <button class="ai-action-btn" @click="searchVisible = !searchVisible" :title="t('ai.search')">
+          <el-icon><Search :size="14" /></el-icon>
+        </button>
         <button class="ai-action-btn" @click="toggleMaximize" :title="isMaximized ? t('ai.restore') : t('ai.maximize')">
           <el-icon><Shrink v-if="isMaximized" :size="14" /><Expand v-else :size="14" /></el-icon>
         </button>
@@ -30,11 +33,35 @@
       </div>
     </div>
 
+    <div v-show="searchVisible" class="ai-search-bar">
+      <input
+        ref="searchInputRef"
+        v-model="searchText"
+        class="search-input"
+        :placeholder="t('ai.searchPlaceholder')"
+        @input="onSearchInput"
+        @keydown.enter.prevent="onSearchNext"
+        @keydown.shift.enter.prevent="onSearchPrev"
+        @keydown.escape="closeSearch"
+      />
+      <span class="search-count" v-if="searchText">{{ currentMatchIndex + 1 }}/{{ totalMatchCount || 0 }}</span>
+      <button class="search-btn" @click="onSearchPrev" :title="t('terminal.searchPrev')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
+      </button>
+      <button class="search-btn" @click="onSearchNext" :title="t('terminal.searchNext')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <button class="search-btn" @click="closeSearch" :title="t('ai.close')">
+        <el-icon><X :size="12" /></el-icon>
+      </button>
+    </div>
+
     <div ref="messagesRef" class="ai-messages" @contextmenu="onAIContextMenu">
       <AIMessage
         v-for="msg in visibleMessages"
         :key="msg.id"
         :message="msg"
+        :search-text="searchText"
         @approve="onApprove"
         @reject="onReject"
         @continue="onContinue"
@@ -119,7 +146,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, computed, watch, onMounted, onUnmounted } from 'vue'
-import { X, Trash2, Expand, Shrink, History, MessageSquarePlus } from '@lucide/vue'
+import { X, Trash2, Expand, Shrink, History, MessageSquarePlus, Search } from '@lucide/vue'
 import { useAIStore } from '../stores/aiStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useTabStore } from '../stores/tabStore'
@@ -145,6 +172,60 @@ const visibleMessages = computed(() => {
     const hasPending = aiStore.pendingCommand?.messageId === m.id
     return m.content || m.tool_calls?.length || hasPending || m.needsContinue
   })
+})
+
+// ── Search ──
+const searchVisible = ref(false)
+const searchText = ref('')
+const searchInputRef = ref<HTMLInputElement>()
+const currentMatchIndex = ref(0)
+const totalMatchCount = ref(0)
+
+function onSearchInput() {
+  currentMatchIndex.value = 0
+  highlightMatches()
+}
+
+function highlightMatches() {
+  nextTick(() => {
+    const marks = messagesRef.value?.querySelectorAll('mark.ai-search-highlight')
+    totalMatchCount.value = marks?.length || 0
+    updateActiveMark()
+  })
+}
+
+function updateActiveMark() {
+  const marks = messagesRef.value?.querySelectorAll('mark.ai-search-highlight')
+  marks?.forEach((m, i) => {
+    m.classList.toggle('active', i === currentMatchIndex.value)
+  })
+  if (marks && marks[currentMatchIndex.value]) {
+    marks[currentMatchIndex.value].scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }
+}
+
+function onSearchNext() {
+  if (totalMatchCount.value === 0) return
+  currentMatchIndex.value = (currentMatchIndex.value + 1) % totalMatchCount.value
+  updateActiveMark()
+}
+
+function onSearchPrev() {
+  if (totalMatchCount.value === 0) return
+  currentMatchIndex.value = (currentMatchIndex.value - 1 + totalMatchCount.value) % totalMatchCount.value
+  updateActiveMark()
+}
+
+function closeSearch() {
+  searchVisible.value = false
+  searchText.value = ''
+  currentMatchIndex.value = 0
+  totalMatchCount.value = 0
+}
+
+// Watch for DOM changes (messages loaded/streamed) to re-count highlights
+watch(() => [searchText.value, visibleMessages.value.length], () => {
+  if (searchText.value) highlightMatches()
 })
 // Hide thinking indicator once streaming content arrives
 const streamingMsgHasContent = computed(() => {
@@ -630,6 +711,46 @@ onUnmounted(() => {
 }
 :deep(.dark-dropdown .el-dropdown-menu__item.divided::before) {
   background-color: var(--border-subtle);
+}
+.ai-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.ai-search-bar .search-input {
+  flex: 1;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  outline: none;
+}
+.ai-search-bar .search-input:focus {
+  border-color: var(--accent);
+}
+.ai-search-bar .search-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.ai-search-bar .search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+}
+.ai-search-bar .search-btn:hover {
+  color: var(--text-primary);
 }
 .ai-messages {
   flex: 1;

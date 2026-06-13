@@ -123,6 +123,8 @@
   "ai.copyFailed": "Copy Failed",
   "ai.maximize": "Maximize",
   "ai.restore": "Restore",
+  "ai.search": "Search",
+  "ai.searchPlaceholder": "Search conversations...",
   "ai.tool.executeCommand": "Execute Command",
   "ai.tool.startCommand": "Start Command",
   "ai.tool.captureTerminal": "Capture Terminal",
