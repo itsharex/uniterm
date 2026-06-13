@@ -62,6 +62,9 @@
   output:   string   — 命令输出（可能被截断）
   exitCode: number   — 0 成功，-1 超时或出错
   timedOut: boolean  — 是否超时
+
+错误:
+  无活跃终端会话时抛出 "No active terminal session"
 ```
 
 **截断规则**：当总行数超过 `head_lines + tail_lines` 时，只保留头尾，中间用截断提示替换，标明省略的行数。
@@ -86,15 +89,22 @@
   command: string — 要执行的 shell 命令
 
 返回值:
-  output:  string — 前 3 秒内的输出
+  output:  string — 前 3 秒内收集到的输出
   started: true
+
+错误:
+  无活跃终端会话时抛出 "No active terminal session"
 ```
+
+**底层实现**：不走 `watchOutput`（因为后台命令永不退出，标记永远不会出现）。发送命令后，直接监听 `session:data` 3 秒，收集到的输出原样返回，3s 后清理监听器并返回。
 
 使用场景：`npm run dev`、`redis-server`、`python -m http.server` 等后台/服务器进程。
 
 ### `capture_terminal` — 读取终端当前内容
 
 从 xterm.js 缓冲区读取终端当前可见内容。瞬时操作，不等待。
+
+"行"的定义：以 `\n` 分隔的逻辑行，非终端折行后的可视行。
 
 ```
 输入参数:
@@ -103,6 +113,9 @@
 
 返回值:
   output: string — 请求的行数，最新内容在底部
+
+错误:
+  无活跃终端会话时抛出 "No active terminal session"
 ```
 
 **底层实现**：从 `xterm.buffer.active`（正常屏幕）或 `xterm.buffer.normal`（替代屏幕时）读取。每行通过 `line.translateToString()` 获取纯文本。
@@ -111,7 +124,7 @@
 
 ### `collect_output` — 等待并收集输出
 
-等待并收集终端新输出，**不向终端发送任何命令**。
+等待并收集终端新输出。不发送功能性命令，仅往终端输入队列插入一个轻量标记用于检测当前命令是否完成。
 
 ```
 输入参数:
@@ -122,6 +135,9 @@
 返回值:
   output:   string  — 等待期间累积的输出
   timedOut: boolean — 等待时间是否耗尽
+
+错误:
+  无活跃终端会话时抛出 "No active terminal session"
 ```
 
 **底层实现**：往终端输入队列中插入一个轻量标记 `echo "__AI_COLLECT_xxx__"`，然后监听 `session:data` 直到标记出现或超时。标记出现意味着 shell 提示符已恢复（当前命令已完成），标记被立即执行。如果标记在超时前未出现，返回已收集的内容。
@@ -136,11 +152,14 @@
 输入参数: 无
 
 返回值:
-  pwd:   string — 当前工作目录
-  user:  string — 当前用户
+  pwd:   string — 当前工作目录（v1 返回 ""，留待 Go 后端 OSC 7 支持）
+  user:  string — 当前用户（v1 返回 ""，留待 Go 后端支持）
   shell: string — shell 类型（bash、zsh、powershell、cmd 等）
   cols:  number — 终端列数
   rows:  number — 终端行数
+
+错误:
+  无活跃终端会话时抛出 "No active terminal session"
 ```
 
 **底层实现**：v1 从 panel config 返回 shell、cols、rows。pwd/user 留待后续 Go 后端支持（通过 OSC 7 转义序列等机制获取）。
@@ -162,6 +181,9 @@
 - 不提供 `ctrl_l`（清屏）— 用户必须始终能看到 AI 的操作历史
 - 发送后附加一个短超时标记以捕获即时响应
 
+错误:
+  无活跃终端会话时抛出 "No active terminal session"
+
 ### `interrupt_command` — 中断当前命令
 
 发送 Ctrl+C 取消正在运行的命令。
@@ -171,6 +193,9 @@
 
 返回值:
   output: string — 中断后捕获的输出
+
+错误:
+  无活跃终端会话时抛出 "No active terminal session"
 ```
 
 **底层实现**：与 `send_terminal_key(undefined, 'ctrl_c')` 走相同路径。独立成工具是为了让系统提示词语义更清晰。
@@ -209,8 +234,9 @@ execute_command(cmd, timeout, head, tail)
   → return { output, exitCode, timedOut }
 
 start_command(cmd)
-  → SessionWrite(cmd + "echo 'MARKER'" + newline)
-  → watchOutput(sessionId, marker, 3000)
+  → SessionWrite(cmd + newline)
+  → 监听 session:data 3 秒（纯时间等待，不走 watchOutput）
+  → 3s 后清理监听器
   → return { output, started: true }
 
 collect_output(timeout, head, tail)
@@ -241,6 +267,8 @@ get_terminal_state()
 ---
 
 ## 输出截断格式
+
+"行"的定义：以 `\n` 字符分隔的逻辑行（非终端折行后的可视行）。
 
 当输出总行数超过 `head_lines + tail_lines` 时，使用以下格式：
 
