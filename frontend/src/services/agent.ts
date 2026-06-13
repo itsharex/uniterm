@@ -397,10 +397,9 @@ export async function runAgent(userInput: string) {
         })
       }
     } else if (tu.name === 'capture_terminal') {
-      const headLines = (tu.input.head_lines as number) ?? 0
       const tailLines = (tu.input.tail_lines as number) ?? 50
       try {
-        const result = captureTerminal(headLines, tailLines)
+        const result = captureTerminal(tailLines)
         store.addMessage({
           id: `msg-${Date.now()}`,
           role: 'tool',

@@ -150,10 +150,6 @@ export const AVAILABLE_TOOLS = [
     input_schema: {
       type: 'object',
       properties: {
-        head_lines: {
-          type: 'number',
-          description: 'Lines from the top of the buffer. Default 0.'
-        },
         tail_lines: {
           type: 'number',
           description: 'Lines from the bottom of the buffer. Default 50. Increase to see more of the recent output.'

@@ -191,7 +191,7 @@ export interface CaptureResult {
   output: string
 }
 
-export function captureTerminal(headLines: number = 0, tailLines: number = 50): CaptureResult {
+export function captureTerminal(tailLines: number = 50): CaptureResult {
   const { sessionId } = resolveActiveSession()
 
   const managed = getManagedTerminal(sessionId)
@@ -207,18 +207,8 @@ export function captureTerminal(headLines: number = 0, tailLines: number = 50): 
     return { output: '' }
   }
 
+  const effectiveTail = Math.min(tailLines, totalLines)
   const lines: string[] = []
-  const effectiveHead = Math.min(headLines, totalLines)
-  const effectiveTail = Math.min(tailLines, totalLines - effectiveHead)
-
-  for (let i = 0; i < effectiveHead; i++) {
-    const line = buffer.getLine(i)
-    if (line) lines.push(line.translateToString())
-  }
-
-  if (effectiveHead + effectiveTail < totalLines) {
-    lines.push(`... (${totalLines - effectiveHead - effectiveTail} 行省略) ...`)
-  }
 
   for (let i = totalLines - effectiveTail; i < totalLines; i++) {
     const line = buffer.getLine(i)

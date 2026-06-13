@@ -31,12 +31,13 @@
           <div class="tool-box in-box">
             <div class="tool-box-header" @click="inExpanded = !inExpanded">
               <span class="tool-box-label">{{ t('ai.in') }}</span>
+              <span class="tool-box-name">{{ formatToolName(tc) }}</span>
               <span class="tool-box-count"></span>
-              <button class="tool-copy-btn" @click.stop="copyToolText(tc.function.arguments, tc.id + '-in')" :title="t('ai.copy')"><el-icon><Check v-if="copiedTool === tc.id + '-in'" :size="14" /><Copy v-else :size="14" /></el-icon></button>
+              <button class="tool-copy-btn" @click.stop="copyToolText(formatToolBody(tc), tc.id + '-in')" :title="t('ai.copy')"><el-icon><Check v-if="copiedTool === tc.id + '-in'" :size="14" /><Copy v-else :size="14" /></el-icon></button>
               <span class="toggle-icon">{{ inExpanded ? '▼' : '▶' }}</span>
             </div>
             <div v-show="inExpanded" class="tool-box-body">
-              <pre class="tool-call-args">{{ formatArgs(tc.function.arguments) }}</pre>
+              <pre class="tool-call-args" v-if="formatToolBody(tc)">{{ formatToolBody(tc) }}</pre>
             </div>
           </div>
 
@@ -147,9 +148,8 @@ async function copyDebugInfo() {
 
 const copiedTool = ref('')
 
-async function copyToolText(raw: string, key: string) {
+async function copyToolText(text: string, key: string) {
   try {
-    const text = key.endsWith('-in') ? formatArgs(raw) : raw
     await navigator.clipboard.writeText(text)
     copiedTool.value = key
     setTimeout(() => { copiedTool.value = '' }, 2000)
@@ -158,13 +158,55 @@ async function copyToolText(raw: string, key: string) {
   }
 }
 
-function formatArgs(args: string): string {
+function snakeToCamel(s: string): string {
+  return s.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
+}
+
+function formatToolName(tc: { function: { name: string; arguments: string } }): string {
+  const name = tc.function.name
+  const camel = snakeToCamel(name)
+  const key = `ai.tool.${camel}`
+  const translated = t(key) !== key ? t(key) : name
   try {
-    const parsed = JSON.parse(args)
-    if (parsed.command) return parsed.command
-    return JSON.stringify(parsed, null, 2)
+    const args = JSON.parse(tc.function.arguments)
+    if (name === 'execute_command' && args.timeout) {
+      return `${translated} [${args.timeout}s]`
+    }
+    if (name === 'collect_output' && args.timeout) {
+      return `${translated} [${args.timeout}s]`
+    }
+  } catch {}
+  return translated
+}
+
+function formatToolBody(tc: { function: { name: string; arguments: string } }): string {
+  const name = tc.function.name
+  try {
+    const args = JSON.parse(tc.function.arguments)
+    switch (name) {
+      case 'execute_command':
+      case 'start_command':
+        return args.command || ''
+      case 'capture_terminal': {
+        return `tail: ${args.tail_lines ?? 50}`
+      }
+      case 'collect_output': {
+        return `head: ${args.head_lines ?? 50}, tail: ${args.tail_lines ?? 150}`
+      }
+      case 'send_terminal_key': {
+        if (args.control) {
+          const ctrlMap: Record<string, string> = { ctrl_c: 'Ctrl+C', ctrl_d: 'Ctrl+D', enter: 'Enter' }
+          return ctrlMap[args.control] || args.control
+        }
+        return args.input || ''
+      }
+      case 'interrupt_command':
+        return 'Ctrl+C'
+      default:
+        return JSON.stringify(args, null, 2)
+    }
   } catch {
-    return args
+    return tc.function.arguments
   }
 }
 
@@ -438,6 +480,19 @@ function escapeHtml(text: string): string {
 .in-box .tool-box-label {
   background: var(--success);
   color: var(--bg-base);
+}
+.tool-box-name {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tool-detail {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 .tool-call-item {
   margin-bottom: 6px;
