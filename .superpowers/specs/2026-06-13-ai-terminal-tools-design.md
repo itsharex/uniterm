@@ -18,7 +18,7 @@
 
 ## 工具总览
 
-7 个工具，按操作类型分三组：
+6 个工具，按操作类型分三组：
 
 ### 执行命令
 
@@ -27,13 +27,12 @@
 | `execute_command` | 是 | 等到标记或超时 | 完整或部分输出 |
 | `start_command` | 是 | 仅等 3s 快照 | 启动输出 |
 
-### 读取终端（不发送功能性命令）
+### 读取终端（不向终端写任何内容）
 
 | 工具 | 方式 | 返回 |
 |------|------|------|
 | `capture_terminal` | xterm.js 缓冲区瞬时快照 | 可见内容的最后 N 行 |
 | `collect_output` | 监听 session:data N 秒 | 等待期间累积的新输出 |
-| `get_terminal_state` | 查询会话元数据 | `{ pwd, user, shell, cols, rows }` |
 
 ### 控制终端（只写）
 
@@ -144,26 +143,6 @@
 
 使用场景：`execute_command` 超时后继续等待、追踪正在运行的命令进度。
 
-### `get_terminal_state` — 获取终端状态
-
-查询会话元数据，不执行任何命令。
-
-```
-输入参数: 无
-
-返回值:
-  pwd:   string — 当前工作目录（v1 返回 ""，留待 Go 后端 OSC 7 支持）
-  user:  string — 当前用户（v1 返回 ""，留待 Go 后端支持）
-  shell: string — shell 类型（bash、zsh、powershell、cmd 等）
-  cols:  number — 终端列数
-  rows:  number — 终端行数
-
-错误:
-  无活跃终端会话时抛出 "No active terminal session"
-```
-
-**底层实现**：v1 从 panel config 返回 shell、cols、rows。pwd/user 留待后续 Go 后端支持（通过 OSC 7 转义序列等机制获取）。
-
 ### `send_terminal_key` — 发送终端输入
 
 向终端发送文本或控制字符。
@@ -264,10 +243,6 @@ interrupt_command()
 capture_terminal(head, tail)
   → 直接从 xterm.js 缓冲区读取
   → 不走 watchOutput，无网络调用
-
-get_terminal_state()
-  → 从 panel config 读取（shell、cols、rows）
-  → 不走 watchOutput，无网络调用
 ```
 
 ---
@@ -342,12 +317,12 @@ get_terminal_state()
 | 文件 | 变更内容 |
 |------|---------|
 | `frontend/src/services/terminalAgent.ts` | 新增 `watchOutput`，重写 `executeCommand`，新增 `startCommand`、`collectOutput`、`sendTerminalKey` |
-| `frontend/src/services/llm.ts` | 在 `AVAILABLE_TOOLS` 中新增 6 个工具定义，更新 `execute_command` 输入参数 |
+| `frontend/src/services/llm.ts` | 在 `AVAILABLE_TOOLS` 中新增 5 个工具定义，更新 `execute_command` 输入参数 |
 | `frontend/src/services/agent.ts` | 在 `runAgent()` 中处理新工具调用，按需更新 `getRisk()` |
 | `frontend/src/stores/aiStore.ts` | 重写 `SYSTEM_RULES` |
 | `frontend/src/types/ai.ts` | 按需新增工具结果类型 |
 
-本次不涉及 Go 后端变更（v1 全部在前端实现）。`get_terminal_state` 的 pwd/user 字段留待后端升级。
+本次不涉及 Go 后端变更（v1 全部在前端实现）。
 
 ---
 
@@ -369,6 +344,5 @@ get_terminal_state()
 - AI 猜测密码（必须询问用户）
 - `send_terminal_key` 提供 `ctrl_l`（禁止清屏）
 - `execute_command` 执行 `clear`/`cls` 等清屏命令（系统提示词中禁止）
-- `get_terminal_state` 通过执行命令获取 pwd/user（必须无副作用，纯被动读取）
 - AI 在后台异步写入终端（不提供异步写入工具）
 - 方案一的交互式提示正则检测（不依赖模式匹配，由 AI 自主判断）
