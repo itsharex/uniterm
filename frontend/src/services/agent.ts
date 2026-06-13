@@ -1,5 +1,5 @@
 import { chat, AVAILABLE_TOOLS } from './llm'
-import { executeCommand } from './terminalAgent'
+import { executeCommand, startCommand, captureTerminal, collectOutput, sendTerminalKey } from './terminalAgent'
 import { useAIStore } from '../stores/aiStore'
 import { useTabStore } from '../stores/tabStore'
 import { usePanelStore } from '../stores/panelStore'
@@ -335,7 +335,10 @@ export async function runAgent(userInput: string) {
     const tu = toolUses[0]
     if (tu.name === 'execute_command') {
       const command = tu.input.command as string
-
+      const timeoutSec = (tu.input.timeout as number) || 60
+      const timeoutMs = Math.max(5000, Math.min(timeoutSec * 1000, 300000))
+      const headLines = (tu.input.head_lines as number) ?? 50
+      const tailLines = (tu.input.tail_lines as number) ?? 150
       const risk = getRisk(tu)
 
       if (shouldConfirm(risk)) {
@@ -346,7 +349,6 @@ export async function runAgent(userInput: string) {
           risk,
           dangerous: risk === 'dangerous'
         })
-        // Keep tool_calls for UI display of IN/OUT boxes
         assistantMsg.tool_calls = [{
           id: tu.id,
           type: 'function' as const,
@@ -360,9 +362,8 @@ export async function runAgent(userInput: string) {
         return
       }
 
-      // Auto-execute
       try {
-        const result = await executeCommand(command)
+        const result = await executeCommand(command, timeoutMs, headLines, tailLines)
         store.addMessage({
           id: `msg-${Date.now()}`,
           role: 'tool',
@@ -374,6 +375,103 @@ export async function runAgent(userInput: string) {
           id: `msg-${Date.now()}`,
           role: 'tool',
           content: `[Error executing command: ${e.message ?? e}]`,
+          tool_call_id: tu.id
+        })
+      }
+    } else if (tu.name === 'start_command') {
+      const command = tu.input.command as string
+      try {
+        const result = await startCommand(command)
+        store.addMessage({
+          id: `msg-${Date.now()}`,
+          role: 'tool',
+          content: result.output || '(command started)',
+          tool_call_id: tu.id
+        })
+      } catch (e: any) {
+        store.addMessage({
+          id: `msg-${Date.now()}`,
+          role: 'tool',
+          content: `[Error starting command: ${e.message ?? e}]`,
+          tool_call_id: tu.id
+        })
+      }
+    } else if (tu.name === 'capture_terminal') {
+      const headLines = (tu.input.head_lines as number) ?? 0
+      const tailLines = (tu.input.tail_lines as number) ?? 50
+      try {
+        const result = captureTerminal(headLines, tailLines)
+        store.addMessage({
+          id: `msg-${Date.now()}`,
+          role: 'tool',
+          content: result.output || '(terminal is empty)',
+          tool_call_id: tu.id
+        })
+      } catch (e: any) {
+        store.addMessage({
+          id: `msg-${Date.now()}`,
+          role: 'tool',
+          content: `[Error capturing terminal: ${e.message ?? e}]`,
+          tool_call_id: tu.id
+        })
+      }
+    } else if (tu.name === 'collect_output') {
+      const timeoutSec = (tu.input.timeout as number) || 30
+      const timeoutMs = Math.max(5000, Math.min(timeoutSec * 1000, 120000))
+      const headLines = (tu.input.head_lines as number) ?? 50
+      const tailLines = (tu.input.tail_lines as number) ?? 150
+      try {
+        const result = await collectOutput(timeoutMs, headLines, tailLines)
+        store.addMessage({
+          id: `msg-${Date.now()}`,
+          role: 'tool',
+          content: result.output,
+          tool_call_id: tu.id
+        })
+      } catch (e: any) {
+        store.addMessage({
+          id: `msg-${Date.now()}`,
+          role: 'tool',
+          content: `[Error collecting output: ${e.message ?? e}]`,
+          tool_call_id: tu.id
+        })
+      }
+    } else if (tu.name === 'send_terminal_key') {
+      const input = tu.input.input as string | undefined
+      const control = tu.input.control as string | undefined
+      try {
+        const result = await sendTerminalKey(
+          input,
+          control as 'ctrl_c' | 'ctrl_d' | 'enter' | undefined
+        )
+        store.addMessage({
+          id: `msg-${Date.now()}`,
+          role: 'tool',
+          content: result.output || '(input sent)',
+          tool_call_id: tu.id
+        })
+      } catch (e: any) {
+        store.addMessage({
+          id: `msg-${Date.now()}`,
+          role: 'tool',
+          content: `[Error sending terminal input: ${e.message ?? e}]`,
+          tool_call_id: tu.id
+        })
+      }
+    } else if (tu.name === 'interrupt_command') {
+      try {
+        const result = await sendTerminalKey(undefined, 'ctrl_c')
+        store.addMessage({
+          id: `msg-${Date.now()}`,
+          role: 'tool',
+          content: result.output || 'Sent Ctrl+C to interrupt the running command.',
+          tool_call_id: tu.id
+        })
+      } catch (e: any) {
+        store.addMessage({
+          id: `msg-${Date.now()}`,
+          role: 'tool',
+          content: `[Error sending Ctrl+C: ${e.message ?? e}]`,
           tool_call_id: tu.id
         })
       }
