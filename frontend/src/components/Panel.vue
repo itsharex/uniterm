@@ -128,7 +128,7 @@ function connectMonitor() {
 }
 
 function triggerSearch() {
-  window.dispatchEvent(new CustomEvent('terminal:open-search'))
+  window.dispatchEvent(new CustomEvent('terminal:open-search', { detail: { panelId: props.panel.id } }))
 }
 
 function onDocumentClick() {

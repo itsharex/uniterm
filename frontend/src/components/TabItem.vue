@@ -246,7 +246,7 @@ function openMonitor() {
 }
 
 function triggerSearch() {
-  window.dispatchEvent(new CustomEvent('terminal:open-search'))
+  window.dispatchEvent(new CustomEvent('terminal:open-search', { detail: { panelId: props.tab.panelId } }))
   closeContextMenu()
 }
 

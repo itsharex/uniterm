@@ -147,6 +147,7 @@ let intersectionObserver: IntersectionObserver | null = null
 let unsubscribe: (() => void) | null = null
 let statusUnsubscribe: (() => void) | null = null
 let onDocumentMouseDown: ((e: MouseEvent) => void) | null = null
+let onOpenSearch: ((e: Event) => void) | null = null
 
 let resizeTimer: ReturnType<typeof setTimeout> | null = null
 let isResizing = false
@@ -887,7 +888,12 @@ onMounted(() => {
   window.addEventListener('resize', onWindowResize)
   window.addEventListener('split:resize-start', onSplitResizeStart)
   window.addEventListener('split:resize-end', onSplitResizeEnd)
-  window.addEventListener('terminal:open-search', openSearch)
+  onOpenSearch = (e: Event) => {
+    const detail = (e as CustomEvent).detail
+    if (detail?.panelId && detail.panelId !== props.panelId) return
+    openSearch()
+  }
+  window.addEventListener('terminal:open-search', onOpenSearch)
 
   // Ctrl+F to open search
   keyHandlerDispose = terminal.attachCustomKeyEventHandler((e) => {
@@ -1120,7 +1126,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', onWindowResize)
   window.removeEventListener('split:resize-start', onSplitResizeStart)
   window.removeEventListener('split:resize-end', onSplitResizeEnd)
-  window.removeEventListener('terminal:open-search', openSearch)
+  if (onOpenSearch) window.removeEventListener('terminal:open-search', onOpenSearch)
   suggestions.close()
   if (!zmodemStore.getActiveTransfer(props.sessionId || '')) {
     disposeZmodemService(props.sessionId || '')
