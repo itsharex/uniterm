@@ -27,7 +27,7 @@
 | `execute_command` | 是 | 等到标记或超时 | 完整或部分输出 |
 | `start_command` | 是 | 仅等 3s 快照 | 启动输出 |
 
-### 读取终端（不写任何东西）
+### 读取终端（不发送功能性命令）
 
 | 工具 | 方式 | 返回 |
 |------|------|------|
@@ -144,6 +144,8 @@
 
 使用场景：`execute_command` 超时后，命令还在跑，继续等。
 
+**边界情况**：如果调用时 shell 提示符已经就绪（没有正在运行的命令），标记会被立即执行，`collect_output` 几乎瞬间返回，输出仅包含标记 echo。此时应使用 `capture_terminal` 读取屏幕内容。
+
 ### `get_terminal_state` — 获取终端状态
 
 查询会话元数据，不执行任何命令。
@@ -176,6 +178,11 @@
 返回值:
   output: string — 发送后 5 秒窗口内捕获的即时响应
 ```
+
+**参数校验**：
+- `input` 和 `control` 同时提供 → 以 `control` 为准
+- `input` 和 `control` 都不提供 → 抛出 "Either input or control must be provided"
+- `input` 为空字符串 → 视为未提供（等同于仅发送 `\n` 的场景应使用 `control: "enter"`）
 
 **限制**：
 - 不提供 `ctrl_l`（清屏）— 用户必须始终能看到 AI 的操作历史
