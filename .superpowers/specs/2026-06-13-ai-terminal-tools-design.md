@@ -124,7 +124,7 @@
 
 ### `collect_output` — 等待并收集输出
 
-等待并收集终端新输出。不发送功能性命令，仅往终端输入队列插入一个轻量标记用于检测当前命令是否完成。
+等待并收集终端新输出。**纯被动监听，不向终端写入任何内容。**
 
 ```
 输入参数:
@@ -140,11 +140,9 @@
   无活跃终端会话时抛出 "No active terminal session"
 ```
 
-**底层实现**：往终端输入队列中插入一个轻量标记 `echo "__AI_COLLECT_xxx__"`，然后监听 `session:data` 直到标记出现或超时。标记出现意味着 shell 提示符已恢复（当前命令已完成），标记被立即执行。如果标记在超时前未出现，返回已收集的内容。
+**底层实现**：订阅 `session:data` 事件，在 `timeout` 秒内累积所有新输出，到时间后清理监听器返回。不调用 `SessionWrite`，不走 `watchOutput`。
 
-使用场景：`execute_command` 超时后，命令还在跑，继续等。
-
-**边界情况**：如果调用时 shell 提示符已经就绪（没有正在运行的命令），标记会被立即执行，`collect_output` 几乎瞬间返回，输出仅包含标记 echo。此时应使用 `capture_terminal` 读取屏幕内容。
+使用场景：`execute_command` 超时后继续等待、追踪正在运行的命令进度。
 
 ### `get_terminal_state` — 获取终端状态
 
@@ -213,7 +211,7 @@
 
 ### 核心原语：`watchOutput`
 
-所有需要监听终端输出的工具共享同一个 `watchOutput` 原语：
+`execute_command` 和 `send_terminal_key` 共用 `watchOutput` 原语（通过标记检测命令完成）：
 
 ```
 watchOutput(sessionId, marker, timeoutMs) → { promise, cleanup }
@@ -247,8 +245,9 @@ start_command(cmd)
   → return { output, started: true }
 
 collect_output(timeout, head, tail)
-  → SessionWrite("echo 'MARKER'" + newline)   // 轻量标记，排入输入队列
-  → watchOutput(sessionId, marker, timeout)
+  → 订阅 session:data（纯监听，不调用 SessionWrite）
+  → 累积 timeout 秒内的所有新输出
+  → 到时间后清理监听器
   → truncate(output, head, tail)
   → return { output, timedOut }
 
@@ -333,7 +332,7 @@ get_terminal_state()
 
 输出读取:
 - 命令已返回但不确定 shell 是否就绪 → 用 capture_terminal
-- collect_output 排队标记并等待，仅在命令正在运行时有效
+- 命令还在跑想追踪进度 → 用 collect_output 纯等待收集
 ```
 
 ---
