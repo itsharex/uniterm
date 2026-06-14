@@ -302,7 +302,7 @@
 import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, watch, nextTick } from 'vue'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime'
 import { SetMonitorActiveTab, SetMonitorPaused, GetProcessDetail, KillProcess, GetPorts, GetDisks, GetNetworkCards } from '../../wailsjs/go/main/App'
-import { ElMessage } from 'element-plus'
+import { msg } from '../services/message'
 import { ArrowDown, Close, RefreshRight } from '@element-plus/icons-vue'
 import { useI18n } from '../i18n'
 
@@ -576,7 +576,7 @@ async function fetchProcessDetail(pid: number) {
     const detail = await GetProcessDetail(props.sessionId, pid)
     processDetail.value = detail
   } catch (e: any) {
-    ElMessage.error(e?.message || 'Failed to fetch process detail')
+    msg.error(e?.message || 'Failed to fetch process detail')
     processDetail.value = null
   }
 }
@@ -600,10 +600,10 @@ async function confirmKill() {
   const signal = signalMap[killType.value] || 'TERM'
   try {
     await KillProcess(props.sessionId, pid, signal)
-    ElMessage.success('Signal sent')
+    msg.success('Signal sent')
     killDialogVisible.value = false
   } catch (e: any) {
-    ElMessage.error(e?.message || 'Failed to send signal')
+    msg.error(e?.message || 'Failed to send signal')
   }
 }
 
@@ -612,7 +612,7 @@ async function fetchPorts() {
   try {
     portList.value = await GetPorts(props.sessionId)
   } catch (e: any) {
-    ElMessage.error(e?.message || 'Failed to fetch ports')
+    msg.error(e?.message || 'Failed to fetch ports')
     portList.value = []
   } finally {
     loadingPorts.value = false
@@ -624,7 +624,7 @@ async function fetchDisks() {
   try {
     diskList.value = await GetDisks(props.sessionId)
   } catch (e: any) {
-    ElMessage.error(e?.message || 'Failed to fetch disks')
+    msg.error(e?.message || 'Failed to fetch disks')
     diskList.value = []
   } finally {
     loadingDisks.value = false
@@ -636,7 +636,7 @@ async function fetchNetCards() {
   try {
     netCardList.value = await GetNetworkCards(props.sessionId)
   } catch (e: any) {
-    ElMessage.error(e?.message || 'Failed to fetch network cards')
+    msg.error(e?.message || 'Failed to fetch network cards')
     netCardList.value = []
   } finally {
     loadingNetCards.value = false
@@ -660,7 +660,7 @@ function hideContextMenu() {
 function copyContextText() {
   if (!contextMenuText.value) return
   navigator.clipboard.writeText(contextMenuText.value).then(() => {
-    ElMessage.success(t('ai.copied'))
+    msg.success(t('ai.copied'))
   }).catch(() => {
     // fallback
     const ta = document.createElement('textarea')
@@ -669,7 +669,7 @@ function copyContextText() {
     ta.select()
     document.execCommand('copy')
     document.body.removeChild(ta)
-    ElMessage.success(t('ai.copied'))
+    msg.success(t('ai.copied'))
   })
   hideContextMenu()
 }

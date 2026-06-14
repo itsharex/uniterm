@@ -204,7 +204,8 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { Pencil, Trash2 } from '@lucide/vue'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { msg } from '../services/message'
 import { useI18n } from '../i18n'
 import { GetTableSchema, AddColumn, ModifyColumn, DropColumn, AddIndex, DropIndexOp, GetDBCapabilities } from '../../wailsjs/go/main/App'
 import type { SchemaResult, ColumnInfo, IndexInfo } from '../types/database'
@@ -254,7 +255,7 @@ async function loadSchema() {
   } catch (e) {
     if (!cancelled) {
       console.error('Failed to load schema:', e)
-      ElMessage.error((e as any)?.message || String(e))
+      msg.error((e as any)?.message || String(e))
     }
   } finally {
     loading.value = false
@@ -283,7 +284,7 @@ async function onSaveColumnEdit() {
   if (editDefaultType.value === 'auto') {
     const upperType = (editColumnType.value || '').toUpperCase().trim()
     if (!((caps.value?.['intTypes'] as string[]) || []).some(t => upperType.startsWith(t))) {
-      ElMessage.warning(t('db.autoIncrementTypeWarn'))
+      msg.warning(t('db.autoIncrementTypeWarn'))
       return
     }
   }
@@ -302,7 +303,7 @@ async function onSaveColumnEdit() {
     await loadSchema()
     emit('refresh')
   } catch (e: any) {
-    ElMessage.error(e?.message || String(e))
+    msg.error(e?.message || String(e))
   }
 }
 
@@ -321,7 +322,7 @@ async function onDropColumn(colName: string) {
     await loadSchema()
     emit('refresh')
   } catch (e: any) {
-    ElMessage.error(e?.message || String(e))
+    msg.error(e?.message || String(e))
   }
 }
 
@@ -345,7 +346,7 @@ async function onDropIndex(idx: IndexInfo) {
     await loadSchema()
     emit('refresh')
   } catch (e: any) {
-    ElMessage.error(e?.message || String(e))
+    msg.error(e?.message || String(e))
   }
 }
 
@@ -378,7 +379,7 @@ async function onAddColumn() {
   if (addDefaultType.value === 'auto') {
     const upperType = (addColType.value || '').toUpperCase().trim()
     if (!((caps.value?.['intTypes'] as string[]) || []).some(t => upperType.startsWith(t))) {
-      ElMessage.warning(t('db.autoIncrementTypeWarn'))
+      msg.warning(t('db.autoIncrementTypeWarn'))
       return
     }
   }
@@ -397,7 +398,7 @@ async function onAddColumn() {
     await loadSchema()
     emit('refresh')
   } catch (e: any) {
-    ElMessage.error(e?.message || String(e))
+    msg.error(e?.message || String(e))
   }
 }
 
@@ -496,7 +497,7 @@ async function onAddIndex() {
       await loadSchema()
       emit('refresh')
     } catch (e: any) {
-      ElMessage.error(e?.message || String(e))
+      msg.error(e?.message || String(e))
     }
     return
   }
@@ -512,7 +513,7 @@ async function onAddIndex() {
     await loadSchema()
     emit('refresh')
   } catch (e: any) {
-    ElMessage.error(e?.message || String(e))
+    msg.error(e?.message || String(e))
   }
 }
 </script>

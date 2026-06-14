@@ -1,5 +1,6 @@
 import { reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { msg } from '../services/message'
 import { CheckForUpdate, GetAppInfo } from '../../wailsjs/go/main/App'
 import { useI18n } from '../i18n'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -52,13 +53,13 @@ async function checkForUpdate(showStatus = false): Promise<UpdateInfo | null> {
       showUpdateNotification(info)
     } else if (showStatus) {
       const { t } = useI18n()
-      ElMessage.success(t('settings.upToDate'))
+      msg.success(t('settings.upToDate'))
     }
     return info
   } catch {
     if (showStatus) {
       const { t } = useI18n()
-      ElMessage.error(t('settings.checkUpdateFailed'))
+      msg.error(t('settings.checkUpdateFailed'))
     }
     return null
   } finally {

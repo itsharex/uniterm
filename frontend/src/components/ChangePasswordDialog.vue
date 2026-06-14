@@ -54,7 +54,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from '../i18n'
 import { useSyncStore } from '../stores/syncStore'
-import { ElMessage } from 'element-plus'
+import { msg } from '../services/message'
 
 const { t } = useI18n()
 const syncStore = useSyncStore()
@@ -101,7 +101,7 @@ async function handleSubmit() {
   submitting.value = true
   try {
     await syncStore.changePassword(currentPassword.value, newPassword.value)
-    ElMessage.success(t('changePassword.success'))
+    msg.success(t('changePassword.success'))
     syncStore.showChangePassword = false
     resetForm()
   } catch (e: any) {

@@ -115,7 +115,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { msg } from '../services/message'
 import { usePanelStore } from '../stores/panelStore'
 import { useI18n } from '../i18n'
 import {
@@ -362,7 +362,7 @@ async function onRefreshLocal() {
     }
   } catch (e: any) {
     if (version !== loadVersionLocal) return
-    ElMessage.error(e?.toString() || 'Failed to list local files')
+    msg.error(e?.toString() || 'Failed to list local files')
   } finally {
     if (version === loadVersionLocal) loadingLocal.value = false
   }
@@ -380,7 +380,7 @@ async function onRefreshRemote() {
     cwd.value = result.dir
   } catch (e: any) {
     if (version !== loadVersionRemote) return
-    ElMessage.error(e?.toString() || 'Failed to list remote files')
+    msg.error(e?.toString() || 'Failed to list remote files')
   } finally {
     if (version === loadVersionRemote) loadingRemote.value = false
   }
@@ -421,7 +421,7 @@ async function onLocalNavigate(path: string) {
     }
   } catch (e: any) {
     if (version !== loadVersionLocal) return
-    ElMessage.error(e?.toString() || 'Failed to navigate')
+    msg.error(e?.toString() || 'Failed to navigate')
   } finally {
     if (version === loadVersionLocal) loadingLocal.value = false
   }
@@ -448,7 +448,7 @@ async function onRemoteNavigate(path: string) {
     cwd.value = result.dir
   } catch (e: any) {
     if (version !== loadVersionRemote) return
-    ElMessage.error(e?.toString() || 'Failed to navigate')
+    msg.error(e?.toString() || 'Failed to navigate')
   } finally {
     if (version === loadVersionRemote) loadingRemote.value = false
   }
@@ -707,7 +707,7 @@ async function readAndUpload(file: File, remotePath: string) {
       const tmpPath = await WriteTempFile(file.name, base64)
       SftpPut(sid, tmpPath, remotePath, false)
     } catch (e) {
-      ElMessage.error('Failed to prepare file for upload')
+      msg.error('Failed to prepare file for upload')
     }
   }
   reader.readAsDataURL(file)

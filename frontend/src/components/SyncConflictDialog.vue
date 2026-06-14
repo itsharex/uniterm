@@ -38,7 +38,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from '../i18n'
 import { useSyncStore } from '../stores/syncStore'
-import { ElMessage } from 'element-plus'
+import { msg } from '../services/message'
 
 const { t } = useI18n()
 const syncStore = useSyncStore()
@@ -65,9 +65,9 @@ async function handleConfirm() {
   try {
     const result = await syncStore.resolveConflict(choice.value === 'local')
     if (result) {
-      ElMessage.success(result.message || t('settings.syncSuccess'))
+      msg.success(result.message || t('settings.syncSuccess'))
     } else {
-      ElMessage.error(syncStore.lastResult || t('settings.syncFailed'))
+      msg.error(syncStore.lastResult || t('settings.syncFailed'))
     }
   } finally {
     syncing.value = false

@@ -117,7 +117,7 @@ import { useUpdateCheck } from './composables/useUpdateCheck'
 import { useI18n } from './i18n'
 import { CreateSession, CloseSession, RDPHide, RDPShow, RDPSetPosition, RDPSetFocus } from '../wailsjs/go/main/App'
 import { EventsOn } from '../wailsjs/runtime'
-import { ElMessage } from 'element-plus'
+import { msg } from './services/message'
 import type { ConnectionConfig } from './types/session'
 
 const connectionStore = useConnectionStore()
@@ -613,11 +613,11 @@ async function onConnectDB(config: ConnectionConfig) {
     panelStore.bindSession(panel.id, info.id)
     sessionStore.initSession(info.id)
   } catch (e: any) {
-    const msg = e?.message || String(e)
-    console.error('Failed to create database session:', msg)
+    const errMsg = e?.message || String(e)
+    console.error('Failed to create database session:', errMsg)
     tabStore.closeTab(tab.id)
     panelStore.removePanel(panel.id)
-    ElMessage.error(`${t('db.connectFailed')}: ${msg}`)
+    msg.error(`${t('db.connectFailed')}: ${errMsg}`)
   }
 }
 

@@ -430,7 +430,7 @@
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from 'vue'
 import { Settings, Monitor, MessageCircleMore, Info, RefreshCw, Pencil, Trash2, History, Search } from '@lucide/vue'
-import { ElMessage } from 'element-plus'
+import { msg } from '../services/message'
 import { FetchModels } from '../../wailsjs/go/main/App'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useSyncStore } from '../stores/syncStore'
@@ -515,13 +515,13 @@ function openEditRepo() {
 async function handleSyncNow() {
   const result = await syncStore.doSync()
   if (!result) {
-    ElMessage.error(syncStore.lastResult || t('settings.syncFailed'))
+    msg.error(syncStore.lastResult || t('settings.syncFailed'))
     return
   }
   if (result.direction === 3) {
     return  // conflict — handled by SyncConflictDialog
   }
-  ElMessage.success(result.message || t('settings.syncSuccess'))
+  msg.success(result.message || t('settings.syncSuccess'))
 }
 
 async function handleAutoSyncToggle() {
@@ -609,7 +609,7 @@ function resetModelForm() {
 
 async function fetchModelList() {
   if (!modelForm.apiKey || !modelForm.baseURL) {
-    ElMessage.warning(t('settings.fetchModelsHint'))
+    msg.warning(t('settings.fetchModelsHint'))
     return
   }
   modelFetching.value = true
@@ -619,9 +619,9 @@ async function fetchModelList() {
     modelSuggestions.value = (models || []).map(m => ({
       value: m.display_name || m.id
     }))
-    ElMessage.success(t('settings.fetchModelsSuccess', { count: modelSuggestions.value.length }))
+    msg.success(t('settings.fetchModelsSuccess', { count: modelSuggestions.value.length }))
   } catch (e: any) {
-    ElMessage.error(t('settings.fetchModelsFailed'))
+    msg.error(t('settings.fetchModelsFailed'))
   } finally {
     modelFetching.value = false
   }

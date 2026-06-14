@@ -29,7 +29,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from '../i18n'
 import { useSyncStore } from '../stores/syncStore'
-import { ElMessage } from 'element-plus'
+import { msg } from '../services/message'
 
 const { t } = useI18n()
 const syncStore = useSyncStore()
@@ -52,7 +52,7 @@ async function handleSubmit() {
   submitting.value = true
   try {
     await syncStore.deleteRepo()
-    ElMessage.success(t('deleteRepo.success'))
+    msg.success(t('deleteRepo.success'))
     syncStore.showDeleteRepo = false
   } catch (e: any) {
     errorMsg.value = e?.message || String(e)

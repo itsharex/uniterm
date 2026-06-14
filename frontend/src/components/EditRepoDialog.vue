@@ -60,7 +60,7 @@ import { Lock } from '@lucide/vue'
 import { useI18n } from '../i18n'
 import { useSyncStore } from '../stores/syncStore'
 import { SyncVerifyPassword } from '../../wailsjs/go/main/App'
-import { ElMessage } from 'element-plus'
+import { msg } from '../services/message'
 
 const { t } = useI18n()
 const syncStore = useSyncStore()
@@ -115,10 +115,10 @@ async function handleSubmit() {
       if (syncResult.direction === 3) {
         // Conflict — SyncConflictDialog will open via event
       } else {
-        ElMessage.success(syncResult.message || t('editRepo.success'))
+        msg.success(syncResult.message || t('editRepo.success'))
       }
     } else {
-      ElMessage.error(syncStore.lastResult || t('settings.syncFailed'))
+      msg.error(syncStore.lastResult || t('settings.syncFailed'))
     }
     syncStore.showEditRepo = false
     resetForm()
