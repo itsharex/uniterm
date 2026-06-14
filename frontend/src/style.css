@@ -191,7 +191,6 @@ html, body, #app {
 }
 
 body {
-  padding: 4px;
   box-sizing: border-box;
   font-family: var(--font-ui);
   background: var(--bg-base);
