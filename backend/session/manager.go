@@ -22,9 +22,7 @@ func (sm *SessionManager) Create(sessionType string, config ConnectionConfig) (S
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	if config.ID == "" {
-		config.ID = uuid.New().String()
-	}
+	config.ID = uuid.New().String()
 
 	var s Session
 	switch sessionType {
