@@ -1167,23 +1167,22 @@ onUnmounted(() => {
 
 .resize-handle {
   position: absolute;
-  right: 0;
+  right: -6px;
   top: 0;
   bottom: 0;
   width: 6px;
   cursor: col-resize;
   z-index: 10;
   background: transparent;
-  transition: background 0.15s ease;
 }
 
-/* Default: same 1px gradient line as the app-header divider, at the edge */
+/* Decorative line stays at the sidebar right edge */
 .resize-handle::before {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
-  right: 0;
+  left: 0;
   width: 1px;
   background: linear-gradient(
     180deg,
@@ -1193,23 +1192,18 @@ onUnmounted(() => {
     var(--accent-subtle) 80%,
     transparent 100%
   );
-  transition: opacity 0.15s;
 }
 
-/* Hover: 3px accent bar (same as original) */
+/* Hover: 3px accent bar extending into sidebar */
 .resize-handle:hover::after {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
-  right: 0;
+  left: 0;
   width: 3px;
   background: var(--accent);
   box-shadow: 0 0 6px var(--accent-glow);
-}
-
-.resize-handle:hover::before {
-  opacity: 0;
 }
 
 .sidebar-header {
