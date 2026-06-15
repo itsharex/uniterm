@@ -144,6 +144,9 @@ let onDataDispose: { dispose(): void } | null = null
 let keyHandlerDispose: { dispose(): void } | null = null
 let resizeObserver: ResizeObserver | null = null
 let intersectionObserver: IntersectionObserver | null = null
+// Track how many bytes of sessionStore data have been written to the terminal
+// so we can replay only missed data on KeepAlive reactivation.
+let writtenLen = 0
 let unsubscribe: (() => void) | null = null
 let statusUnsubscribe: (() => void) | null = null
 let onDocumentMouseDown: ((e: MouseEvent) => void) | null = null
@@ -571,13 +574,19 @@ onMounted(() => {
     const sid = props.sessionId
     const isNewTerminal = managed?.isNew
     if (sid && isNewTerminal) {
-      const history = sanitizeTerminalHistory(sessionStore.getData(sid))
+      const raw = sessionStore.getData(sid)
+      const history = sanitizeTerminalHistory(raw)
       if (history) {
         // Apply syntax highlighting when restoring history so it matches
         // newly arriving lines after a tab switch.
         const hlOn = settingsStore.settings.terminal.highlightEnabled ?? true
         terminal.write(hlOn ? highlight(history) : history)
       }
+      // Sync writtenLen so onActivated replay only fills the gap after
+      // the initial restore. Use raw length because session:data handler
+      // writes raw chunks; sanitizeTerminalHistory strips garbage that
+      // we don't want to replay later either.
+      writtenLen = raw.length
     }
     // Force initial resize with retries — needed because cell dimensions
     // may not be available immediately, and for reused terminals the cols/rows
@@ -832,6 +841,7 @@ onMounted(() => {
       if (cleaned) {
         terminal.write(cleaned)
       }
+      writtenLen += data.length
     } else {
       // Extract history commands from SSH output
       if (props.mode === 'ssh' && terminalInput) {
@@ -843,6 +853,7 @@ onMounted(() => {
       }
       const hlOn = settingsStore.settings.terminal.highlightEnabled ?? true
       terminal.write(hlOn ? highlight(data) : data)
+      writtenLen += data.length
       if (props.mode === 'ssh' && props.onSessionStatus) {
         // onSessionData is handled by the consumer via EventsOn if needed
       }
@@ -966,6 +977,21 @@ onMounted(() => {
 
 onActivated(() => {
   // Component restored from KeepAlive cache.
+
+  // Replay session data that arrived while deactivated BEFORE
+  // setting isActive = true. The session:data handler gates on
+  // isActive, so new data would race with the gap replay and
+  // advance writtenLen, making the gap undetectable.
+  if (props.sessionId) {
+    const full = sessionStore.getData(props.sessionId)
+    if (full.length > writtenLen) {
+      const tail = full.slice(writtenLen)
+      const hlOn = settingsStore.settings.terminal.highlightEnabled ?? true
+      terminal?.write(hlOn ? highlight(tail) : tail)
+      writtenLen = full.length
+    }
+  }
+
   isActive.value = true
   // Re-attach terminal element — another component may have moved it while
   // we were cached (e.g. merge→drag-out→re-merge keeps panelId, KeepAlive
@@ -1016,6 +1042,9 @@ watch(() => props.sessionId, (newId, oldId) => {
     releaseTerminal(oldId, terminalInstanceRef)
     disposeZmodemService(oldId)
   }
+  // Reset write tracking when session changes so onActivated replay
+  // starts from the correct offset for the new session.
+  writtenLen = 0
   if (newId && (props.mode === 'ssh' || props.mode === 'local')) {
     initZmodemService(newId)
     terminal = acquireTerminal(newId, terminalInstanceRef, getTerminalOptions())
