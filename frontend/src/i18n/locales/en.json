@@ -559,6 +559,8 @@
   "quickCommands.title": "Quick Commands",
   "quickCommands.connectionsTab": "Connections",
   "quickCommands.quickCommandsTab": "Quick Commands",
+  "quickCommands.historyTab": "History",
+  "quickCommands.saveAs": "Save as Quick Command",
   "quickCommands.addGroup": "Add Group",
   "quickCommands.addCommand": "Add Command",
   "quickCommands.editGroup": "Edit Group",

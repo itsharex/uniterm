@@ -558,6 +558,8 @@
   "quickCommands.title": "快捷命令",
   "quickCommands.connectionsTab": "連線列表",
   "quickCommands.quickCommandsTab": "快捷命令",
+  "quickCommands.historyTab": "歷史命令",
+  "quickCommands.saveAs": "儲存為快捷命令",
   "quickCommands.addGroup": "新增群組",
   "quickCommands.addCommand": "新增命令",
   "quickCommands.editGroup": "編輯群組",

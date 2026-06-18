@@ -558,6 +558,8 @@
   "quickCommands.title": "Commandes rapides",
   "quickCommands.connectionsTab": "Connexions",
   "quickCommands.quickCommandsTab": "Commandes rapides",
+  "quickCommands.historyTab": "Historique",
+  "quickCommands.saveAs": "Enregistrer comme commande rapide",
   "quickCommands.addGroup": "Ajouter un groupe",
   "quickCommands.addCommand": "Ajouter une commande",
   "quickCommands.editGroup": "Modifier le groupe",

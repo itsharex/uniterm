@@ -559,6 +559,8 @@
   "quickCommands.title": "快捷命令",
   "quickCommands.connectionsTab": "连接列表",
   "quickCommands.quickCommandsTab": "快捷命令",
+  "quickCommands.historyTab": "历史命令",
+  "quickCommands.saveAs": "保存为快捷命令",
   "quickCommands.addGroup": "添加分组",
   "quickCommands.addCommand": "添加命令",
   "quickCommands.editGroup": "编辑分组",

@@ -558,6 +558,8 @@
   "quickCommands.title": "Быстрые команды",
   "quickCommands.connectionsTab": "Подключения",
   "quickCommands.quickCommandsTab": "Быстрые команды",
+  "quickCommands.historyTab": "История",
+  "quickCommands.saveAs": "Сохранить как быструю команду",
   "quickCommands.addGroup": "Добавить группу",
   "quickCommands.addCommand": "Добавить команду",
   "quickCommands.editGroup": "Редактировать группу",

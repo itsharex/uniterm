@@ -558,6 +558,8 @@
   "quickCommands.title": "빠른 명령",
   "quickCommands.connectionsTab": "연결 목록",
   "quickCommands.quickCommandsTab": "빠른 명령",
+  "quickCommands.historyTab": "명령 기록",
+  "quickCommands.saveAs": "빠른 명령으로 저장",
   "quickCommands.addGroup": "그룹 추가",
   "quickCommands.addCommand": "명령 추가",
   "quickCommands.editGroup": "그룹 편집",

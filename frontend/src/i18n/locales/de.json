@@ -558,6 +558,8 @@
   "quickCommands.title": "Schnellbefehle",
   "quickCommands.connectionsTab": "Verbindungen",
   "quickCommands.quickCommandsTab": "Schnellbefehle",
+  "quickCommands.historyTab": "Verlauf",
+  "quickCommands.saveAs": "Als Schnellbefehl speichern",
   "quickCommands.addGroup": "Gruppe hinzufügen",
   "quickCommands.addCommand": "Befehl hinzufügen",
   "quickCommands.editGroup": "Gruppe bearbeiten",

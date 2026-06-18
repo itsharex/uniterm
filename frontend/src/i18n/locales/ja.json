@@ -558,6 +558,8 @@
   "quickCommands.title": "クイックコマンド",
   "quickCommands.connectionsTab": "接続リスト",
   "quickCommands.quickCommandsTab": "クイックコマンド",
+  "quickCommands.historyTab": "履歴",
+  "quickCommands.saveAs": "クイックコマンドに保存",
   "quickCommands.addGroup": "グループ追加",
   "quickCommands.addCommand": "コマンド追加",
   "quickCommands.editGroup": "グループ編集",
