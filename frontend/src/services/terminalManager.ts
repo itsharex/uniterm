@@ -22,6 +22,12 @@ export interface ManagedTerminal {
   disposeTimer: ReturnType<typeof setTimeout> | null
   /** Whether this terminal was newly created (not reused via timer cancellation). */
   isNew: boolean
+  /** Shared generation counter across all components using this terminal.
+   * Bumped each time any component registers an onData handler. Callbacks
+   * capture a snapshot and bail out if it no longer matches, preventing
+   * double input when multiple KeepAlive-cached components share the same
+   * terminal instance. */
+  onDataGeneration: number
 }
 
 const terminals = new Map<string, ManagedTerminal>()
@@ -83,6 +89,7 @@ export function acquireTerminal(
       options,
       disposeTimer: null,
       isNew: true,
+      onDataGeneration: 0,
     }
     terminals.set(sessionId, managed)
   }
@@ -162,4 +169,15 @@ export function getTerminal(sessionId: string): Terminal | undefined {
 
 export function getManagedTerminal(sessionId: string): ManagedTerminal | undefined {
   return terminals.get(sessionId)
+}
+
+/** Bump the shared onData generation counter for the given terminal.
+ * Returns the NEW generation value. Callers should capture this value
+ * in their onData callback and bail out if the terminal's current
+ * generation no longer matches. */
+export function bumpOnDataGeneration(sessionId: string): number {
+  const managed = terminals.get(sessionId)
+  if (!managed) return 0
+  const next = ++managed.onDataGeneration
+  return next
 }
