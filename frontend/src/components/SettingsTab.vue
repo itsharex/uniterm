@@ -252,70 +252,6 @@
         </template>
       </div>
 
-      <!-- 历史记录管理 -->
-      <div v-if="settingsStore.activeCategory === 'history'" class="settings-section">
-        <h2 class="section-title">{{ t('settings.history') }}</h2>
-
-        <!-- Search -->
-        <div class="history-search-bar">
-          <el-input
-            v-model="historySearch"
-            :placeholder="t('settings.historySearchPlaceholder')"
-            clearable
-            size="small"
-          >
-            <template #prefix>
-              <el-icon><Search :size="14" /></el-icon>
-            </template>
-          </el-input>
-        </div>
-
-        <!-- History list -->
-        <div class="history-list-container">
-          <div class="history-list-header">
-            <el-checkbox
-              :model-value="isAllHistorySelected"
-              :indeterminate="historySelectedIds.size > 0 && !isAllHistorySelected"
-              @change="toggleSelectAllHistory"
-            />
-            <span class="history-header-label">{{ t('settings.historyCommand') }}</span>
-          </div>
-
-          <div class="history-list-body">
-            <div
-              v-for="entry in historyEntries"
-              :key="entry.id"
-              class="history-item"
-            >
-              <el-checkbox
-                :model-value="historySelectedIds.has(entry.id)"
-                @change="toggleHistorySelection(entry.id)"
-              />
-              <span class="history-command">{{ entry.command }}</span>
-              <el-button
-                link
-                size="small"
-                type="danger"
-                @click="deleteHistoryItem(entry.id)"
-              >
-                <el-icon><Trash2 :size="14" /></el-icon>
-              </el-button>
-            </div>
-
-            <div v-if="historyEntries.length === 0" class="history-empty">
-              {{ t('settings.historyEmpty') }}
-            </div>
-          </div>
-
-          <!-- Batch actions -->
-          <div v-if="historySelectedIds.size > 0" class="history-batch-actions">
-            <el-button size="small" type="danger" @click="deleteSelectedHistory">
-              {{ t('settings.historyBatchDelete', { count: historySelectedIds.size }) }}
-            </el-button>
-          </div>
-        </div>
-      </div>
-
       <!-- 关于 -->
       <div v-if="settingsStore.activeCategory === 'about'" class="settings-section">
         <h2 class="section-title">{{ t('settings.about') }}</h2>
@@ -429,15 +365,13 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from 'vue'
-import { Settings, Monitor, MessageCircleMore, Info, RefreshCw, Pencil, Trash2, History, Search } from '@lucide/vue'
+import { Settings, Monitor, MessageCircleMore, Info, RefreshCw, Pencil, Trash2 } from '@lucide/vue'
 import { msg } from '../services/message'
 import { FetchModels } from '../../wailsjs/go/main/App'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useSyncStore } from '../stores/syncStore'
 import { useUpdateCheck } from '../composables/useUpdateCheck'
 import { useI18n } from '../i18n'
-import { useSuggestions } from '../composables/useSuggestions'
-import type { HistoryEntry } from '../composables/useSuggestions'
 import { TERMINAL_THEMES, FONT_OPTIONS, LANGUAGE_OPTIONS } from '../types/settings'
 import type { AIModelConfig } from '../types/settings'
 import AddRepoDialog from './AddRepoDialog.vue'
@@ -449,64 +383,6 @@ const settingsStore = useSettingsStore()
 const syncStore = useSyncStore()
 const updateCheck = useUpdateCheck()
 const { t } = useI18n()
-
-const suggestions = useSuggestions()
-const historySearch = ref('')
-const historySelectedIds = ref<Set<string>>(new Set())
-const historyList = ref<HistoryEntry[]>([])
-
-const historyEntries = computed(() => {
-  const query = historySearch.value.trim().toLowerCase()
-  if (!query) return [...historyList.value].reverse()
-  return historyList.value.filter(e => e.command.toLowerCase().includes(query)).reverse()
-})
-
-const isAllHistorySelected = computed(() => {
-  if (historyEntries.value.length === 0) return false
-  return historyEntries.value.every(e => historySelectedIds.value.has(e.id))
-})
-
-async function refreshHistory() {
-  historyList.value = await suggestions.loadHistory()
-}
-
-function toggleSelectAllHistory() {
-  if (isAllHistorySelected.value) {
-    historySelectedIds.value.clear()
-  } else {
-    historyEntries.value.forEach(e => historySelectedIds.value.add(e.id))
-  }
-}
-
-function toggleHistorySelection(id: string) {
-  if (historySelectedIds.value.has(id)) {
-    historySelectedIds.value.delete(id)
-  } else {
-    historySelectedIds.value.add(id)
-  }
-}
-
-async function deleteSelectedHistory() {
-  const ids = Array.from(historySelectedIds.value)
-  if (ids.length === 0) return
-  suggestions.removeHistoryCommandsById(ids)
-  historySelectedIds.value.clear()
-  // Remove from local list immediately for responsive UI
-  historyList.value = historyList.value.filter(e => !ids.includes(e.id))
-}
-
-function deleteHistoryItem(id: string) {
-  suggestions.removeHistoryCommandById(id)
-  historySelectedIds.value.delete(id)
-  // Remove from local list immediately for responsive UI
-  historyList.value = historyList.value.filter(e => e.id !== id)
-}
-
-watch(() => settingsStore.activeCategory, async (cat) => {
-  if (cat === 'history') {
-    await refreshHistory()
-  }
-})
 
 function openEditRepo() {
   syncStore.showEditRepo = true
@@ -539,16 +415,15 @@ async function handleCheckUpdate() {
 syncStore.loadConfig()
 
 watch(() => settingsStore.openCategory, (cat) => {
-  if (cat && (cat === 'basic' || cat === 'terminal' || cat === 'ai' || cat === 'sync' || cat === 'history' || cat === 'about')) {
+  if (cat && (cat === 'basic' || cat === 'terminal' || cat === 'ai' || cat === 'sync' || cat === 'about')) {
     settingsStore.activeCategory = cat
     settingsStore.openCategory = null
   }
 })
 
 const categories = computed(() => {
-  // Explicitly read language and smartCompletion to ensure reactivity tracking
+  // Explicitly read language to ensure reactivity tracking
   void settingsStore.settings.language
-  const smartOn = settingsStore.settings.terminal.smartCompletion ?? true
   const cats = [
     { key: 'basic', label: t('settings.basic'), icon: Settings },
     { key: 'terminal', label: t('settings.terminal'), icon: Monitor },
@@ -556,9 +431,6 @@ const categories = computed(() => {
     { key: 'sync', label: t('settings.sync'), icon: RefreshCw },
     { key: 'about', label: t('settings.about'), icon: Info },
   ]
-  if (smartOn) {
-    cats.splice(4, 0, { key: 'history', label: t('settings.history'), icon: History })
-  }
   return cats
 })
 
@@ -999,75 +871,6 @@ function getShellLabel(path: string): string {
   font-size: 12px;
   color: var(--text-muted);
   flex: 1;
-}
-
-/* History management */
-.history-search-bar {
-  margin-bottom: 12px;
-}
-.history-search-bar .el-input {
-  width: 100%;
-}
-.history-list-container {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-.history-list-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: var(--bg-hover);
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-.history-header-label {
-  flex: 1;
-}
-.history-list-body {
-  max-height: 400px;
-  overflow-y: auto;
-}
-.history-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--border-subtle);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  transition: background 0.1s ease;
-}
-.history-item:last-child {
-  border-bottom: none;
-}
-.history-item:hover {
-  background: var(--bg-hover);
-}
-.history-command {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-primary);
-}
-.history-empty {
-  padding: 24px;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 13px;
-}
-.history-batch-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 10px 14px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--bg-hover);
 }
 
 .model-fetch-row {
