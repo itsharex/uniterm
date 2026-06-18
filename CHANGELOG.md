@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.0
+## v1.0.1
 
 - **new** Quick Commands management. Sidebar panel with drag-drop groups, search filtering, keyboard navigation (arrow keys + Enter), edit dialog, and full 9-language i18n support.
 - **new** History Panel. New sidebar tab displaying all terminal command history with search and copy support.
