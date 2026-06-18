@@ -25,7 +25,10 @@
           @click="toggleGroup(group.id)"
           @contextmenu.prevent="onGroupContextMenu($event, group)"
         >
-          <component :is="expandedGroups.has(group.id) ? ChevronDown : ChevronRight" :size="14" class="qc-chevron" />
+          <span class="qc-group-arrow">
+            <el-icon v-if="expandedGroups.has(group.id)"><ChevronDown :size="14" /></el-icon>
+            <el-icon v-else><ChevronRight :size="14" /></el-icon>
+          </span>
           <span class="qc-group-name">{{ group.name }}</span>
           <span class="qc-group-count">({{ getGroupCommandCount(group.id) }})</span>
         </div>
@@ -400,9 +403,11 @@ function doDeleteGroup(deleteCommands: boolean) {
   font-weight: 500;
 }
 
-.qc-chevron {
-  flex-shrink: 0;
-  color: var(--text-muted);
+.qc-group-arrow {
+  display: inline-flex;
+  align-items: center;
+  width: 16px;
+  color: var(--text-disabled);
 }
 
 .qc-group-name {
