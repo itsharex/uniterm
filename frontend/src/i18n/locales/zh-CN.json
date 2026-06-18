@@ -557,6 +557,8 @@
   "conn.ftpPassive": "被动模式",
   "conn.ftpEncoding": "字符编码",
   "quickCommands.title": "快捷命令",
+  "quickCommands.connectionsTab": "连接列表",
+  "quickCommands.quickCommandsTab": "快捷命令",
   "quickCommands.addGroup": "添加分组",
   "quickCommands.addCommand": "添加命令",
   "quickCommands.editGroup": "编辑分组",
@@ -582,5 +584,6 @@
   "quickCommands.editCommand": "编辑命令",
   "quickCommands.deleteCommand": "删除命令",
   "quickCommands.group": "分组",
-  "quickCommands.commandRequired": "请输入命令"
+  "quickCommands.commandRequired": "请输入命令",
+  "quickCommands.searchPlaceholder": "搜索名称或命令..."
 }

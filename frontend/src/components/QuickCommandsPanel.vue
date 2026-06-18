@@ -2,7 +2,12 @@
   <div class="quick-commands-panel">
     <!-- Top toolbar -->
     <div class="qc-toolbar">
-      <span class="qc-title">{{ t('quickCommands.title') }}</span>
+      <input
+        v-model="searchQuery"
+        class="qc-search"
+        :placeholder="t('quickCommands.searchPlaceholder')"
+        @click.stop
+      />
       <div class="qc-toolbar-actions">
         <button class="qc-toolbar-btn" @click="addGroup" :title="t('quickCommands.addGroup')">
           <FolderPlus :size="15" />
@@ -28,7 +33,7 @@
 
         <template v-if="expandedGroups.has(group.id)">
           <div
-            v-for="cmd in store.getCommandsByGroup(group.id)"
+            v-for="cmd in store.getCommandsByGroup(group.id).filter(matchesSearch)"
             :key="cmd.id"
             class="qc-item"
             :class="{ selected: selectedId === cmd.id }"
@@ -60,7 +65,7 @@
           <span class="qc-group-name">{{ t('quickCommands.noGroup') }}</span>
         </div>
         <div
-          v-for="cmd in store.getCommandsByGroup(undefined)"
+          v-for="cmd in store.getCommandsByGroup(undefined).filter(matchesSearch)"
           :key="cmd.id"
           class="qc-item"
           :class="{ selected: selectedId === cmd.id }"
@@ -175,6 +180,7 @@ const panelStore = usePanelStore()
 
 const selectedId = ref<string | null>(null)
 const hoveredId = ref<string | null>(null)
+const searchQuery = ref('')
 const expandedGroups = ref<Set<string>>(new Set())
 
 const cmdContextMenu = ref<{ visible: boolean; x: number; y: number; cmd: QuickCommand | null }>({ visible: false, x: 0, y: 0, cmd: null })
@@ -215,6 +221,14 @@ function toggleGroup(id: string) {
 
 function getGroupCommandCount(groupId: string): number {
   return store.getCommandsByGroup(groupId).length
+}
+
+function matchesSearch(cmd: QuickCommand): boolean {
+  if (!searchQuery.value.trim()) return true
+  const q = searchQuery.value.toLowerCase()
+  if (cmd.name && cmd.name.toLowerCase().includes(q)) return true
+  if (cmd.command.toLowerCase().includes(q)) return true
+  return false
 }
 
 function selectCommand(id: string) {
@@ -334,12 +348,25 @@ function doDeleteGroup(deleteCommands: boolean) {
   flex-shrink: 0;
 }
 
-.qc-title {
+.qc-search {
+  flex: 1;
+  height: 26px;
+  padding: 0 8px;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-input, var(--bg-secondary));
+  color: var(--text-primary);
+  outline: none;
+  min-width: 0;
+}
+
+.qc-search::placeholder {
+  color: var(--text-muted);
+}
+
+.qc-search:focus {
+  border-color: var(--accent-color);
 }
 
 .qc-toolbar-actions {

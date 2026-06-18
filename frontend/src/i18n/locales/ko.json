@@ -556,6 +556,8 @@
   "conn.ftpPassive": "Passive Mode",
   "conn.ftpEncoding": "Encoding",
   "quickCommands.title": "빠른 명령",
+  "quickCommands.connectionsTab": "연결 목록",
+  "quickCommands.quickCommandsTab": "빠른 명령",
   "quickCommands.addGroup": "그룹 추가",
   "quickCommands.addCommand": "명령 추가",
   "quickCommands.editGroup": "그룹 편집",
@@ -581,5 +583,6 @@
   "quickCommands.editCommand": "명령 편집",
   "quickCommands.deleteCommand": "명령 삭제",
   "quickCommands.group": "그룹",
-  "quickCommands.commandRequired": "명령을 입력하세요"
+  "quickCommands.commandRequired": "명령을 입력하세요",
+  "quickCommands.searchPlaceholder": "이름 또는 명령 검색..."
 }

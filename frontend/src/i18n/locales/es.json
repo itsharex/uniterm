@@ -556,6 +556,8 @@
   "conn.ftpPassive": "Passive Mode",
   "conn.ftpEncoding": "Encoding",
   "quickCommands.title": "Comandos rápidos",
+  "quickCommands.connectionsTab": "Conexiones",
+  "quickCommands.quickCommandsTab": "Comandos rápidos",
   "quickCommands.addGroup": "Añadir grupo",
   "quickCommands.addCommand": "Añadir comando",
   "quickCommands.editGroup": "Editar grupo",
@@ -581,5 +583,6 @@
   "quickCommands.editCommand": "Editar comando",
   "quickCommands.deleteCommand": "Eliminar comando",
   "quickCommands.group": "Grupo",
-  "quickCommands.commandRequired": "El comando es obligatorio"
+  "quickCommands.commandRequired": "El comando es obligatorio",
+  "quickCommands.searchPlaceholder": "Buscar nombre o comando..."
 }

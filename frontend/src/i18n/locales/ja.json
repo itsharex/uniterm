@@ -556,6 +556,8 @@
   "conn.ftpPassive": "パッシブモード",
   "conn.ftpEncoding": "文字エンコーディング",
   "quickCommands.title": "クイックコマンド",
+  "quickCommands.connectionsTab": "接続リスト",
+  "quickCommands.quickCommandsTab": "クイックコマンド",
   "quickCommands.addGroup": "グループ追加",
   "quickCommands.addCommand": "コマンド追加",
   "quickCommands.editGroup": "グループ編集",
@@ -581,5 +583,6 @@
   "quickCommands.editCommand": "コマンド編集",
   "quickCommands.deleteCommand": "コマンド削除",
   "quickCommands.group": "グループ",
-  "quickCommands.commandRequired": "コマンドを入力してください"
+  "quickCommands.commandRequired": "コマンドを入力してください",
+  "quickCommands.searchPlaceholder": "名前またはコマンドを検索..."
 }

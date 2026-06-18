@@ -556,6 +556,8 @@
   "conn.ftpPassive": "Passive Mode",
   "conn.ftpEncoding": "Encoding",
   "quickCommands.title": "Быстрые команды",
+  "quickCommands.connectionsTab": "Подключения",
+  "quickCommands.quickCommandsTab": "Быстрые команды",
   "quickCommands.addGroup": "Добавить группу",
   "quickCommands.addCommand": "Добавить команду",
   "quickCommands.editGroup": "Редактировать группу",
@@ -581,5 +583,6 @@
   "quickCommands.editCommand": "Редактировать команду",
   "quickCommands.deleteCommand": "Удалить команду",
   "quickCommands.group": "Группа",
-  "quickCommands.commandRequired": "Команда обязательна"
+  "quickCommands.commandRequired": "Команда обязательна",
+  "quickCommands.searchPlaceholder": "Поиск по имени или команде..."
 }
