@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { SaveTerminalHistory, LoadTerminalHistory } from '../../wailsjs/go/main/App'
 import { chat } from '../services/llm'
+import { useQuickCommandStore } from '../stores/quickCommandStore'
 
 function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -22,6 +23,7 @@ export interface SuggestionItem {
   icon?: string
   description?: string
   matchIndices?: number[]
+  commandMatchIndices?: number[]  // For quick-command items when match is on command text
   id?: string  // For history items only
 }
 
@@ -37,9 +39,6 @@ const MAX_COMMAND_LENGTH = 200
 
 const historyCache = new Map<string, HistoryEntry>() // key = command
 let historyLoaded = false
-
-// Shared state for quick command data (set from outside to avoid circular deps)
-export const quickCommandCache = ref<{ name?: string; command: string; id: string }[]>([])
 
 export function useSuggestions() {
   const state = ref<SuggestionsState>({
@@ -252,16 +251,35 @@ export function useSuggestions() {
     if (!prefix) return []
     const lowerPrefix = prefix.toLowerCase()
     const matches: SuggestionItem[] = []
-    for (const cmd of quickCommandCache.value) {
-      const text = cmd.name || cmd.command
-      const searchIn = cmd.command
-      // Match against name or command text
-      if (text.toLowerCase().includes(lowerPrefix) || searchIn.toLowerCase().startsWith(lowerPrefix)) {
+    // Read directly from store (lazy load if needed)
+    const qcStore = useQuickCommandStore()
+    if (!qcStore.loaded) {
+      qcStore.load()
+    }
+    for (const cmd of qcStore.commands) {
+      const label = cmd.name || cmd.command
+      const lowerLabel = label.toLowerCase()
+      const lowerCmd = cmd.command.toLowerCase()
+      if (lowerLabel.includes(lowerPrefix) || lowerCmd.includes(lowerPrefix)) {
+        // Compute label match indices
+        const lblIdx = lowerLabel.indexOf(lowerPrefix)
+        const labelIndices: number[] = []
+        if (lblIdx >= 0) {
+          for (let i = 0; i < lowerPrefix.length; i++) labelIndices.push(lblIdx + i)
+        }
+        // Compute command match indices
+        const cmdIdx = lowerCmd.indexOf(lowerPrefix)
+        const cmdIndices: number[] = []
+        if (cmdIdx >= 0) {
+          for (let i = 0; i < lowerPrefix.length; i++) cmdIndices.push(cmdIdx + i)
+        }
         matches.push({
           type: 'quick-command',
-          label: cmd.name || cmd.command,
+          label,
           value: cmd.command,
           description: '快捷命令',
+          matchIndices: labelIndices.length > 0 ? labelIndices : undefined,
+          commandMatchIndices: cmdIndices.length > 0 ? cmdIndices : undefined,
           id: cmd.id,
         })
       }

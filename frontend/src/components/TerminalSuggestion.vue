@@ -16,14 +16,28 @@
         @click="onSelect(index)"
         @mouseenter="onHover(index)"
       >
-        <span v-if="item.icon" class="suggestion-icon">{{ item.icon }}</span>
-        <span class="suggestion-label">
+        <span class="suggestion-desc">
+          <el-icon v-if="item.type === 'quick-command'"><Zap :size="12" /></el-icon>
+          <el-icon v-else-if="item.type === 'history'"><Clock :size="12" /></el-icon>
+        </span>
+        <span v-if="item.type === 'quick-command' && item.label !== item.value" class="suggestion-label">
+          <span class="qc-name">
+            <template v-for="(char, charIdx) in item.label" :key="charIdx">
+              <span :class="{ 'match-char': item.matchIndices?.includes(charIdx) }">{{ char }}</span>
+            </template>
+          </span>
+          <span class="qc-cmd">
+            <template v-for="(char, charIdx) in item.value" :key="charIdx">
+              <span :class="{ 'match-char': item.commandMatchIndices?.includes(charIdx) }">{{ char }}</span>
+            </template>
+          </span>
+        </span>
+        <span v-else class="suggestion-label">
           <template v-for="(char, charIdx) in item.label" :key="charIdx">
             <span :class="{ 'match-char': item.matchIndices?.includes(charIdx) }">{{ char }}</span>
           </template>
         </span>
-        <span v-if="item.description" class="suggestion-desc">{{ item.description }}</span>
-        <button v-if="item.id" class="delete-btn" @click.stop="onRemove(item.id)"><X :size="12" /></button>
+        <button class="delete-btn" :class="{ visible: item.type === 'history' }" @click.stop="onRemove(item.id)"><Trash2 :size="12" /></button>
       </div>
     </div>
     <!-- AI section (fixed at bottom) -->
@@ -38,16 +52,17 @@
       @click="onSelect(aiItemWithIndex.index)"
       @mouseenter="onHover(aiItemWithIndex.index)"
     >
-      <span v-if="aiItemWithIndex.item.icon" class="suggestion-icon">{{ aiItemWithIndex.item.icon }}</span>
+      <span class="suggestion-desc">
+        <el-icon><Sparkles :size="12" /></el-icon>
+      </span>
       <span class="suggestion-label">{{ aiItemWithIndex.item.label }}</span>
-      <span v-if="aiItemWithIndex.item.description" class="suggestion-desc">{{ aiItemWithIndex.item.description }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { X } from '@lucide/vue'
+import { Trash2, Clock, Zap, Sparkles } from '@lucide/vue'
 import type { SuggestionItem } from '../composables/useSuggestions'
 
 const props = defineProps<{
@@ -154,7 +169,7 @@ watch(() => props.items, () => {
 const historyItemsWithIndex = computed(() => {
   const result: { item: SuggestionItem; index: number }[] = []
   props.items.forEach((item, index) => {
-    if (item.type === 'history') {
+    if (item.type !== 'ai-preview' && item.type !== 'ai-result') {
       result.push({ item, index })
     }
   })
@@ -281,6 +296,24 @@ function onRemove(id: string) {
   white-space: nowrap;
 }
 
+.suggestion-label .qc-name {
+  display: block;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.suggestion-label .qc-cmd {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .match-char {
   color: var(--accent);
   font-weight: 600;
@@ -293,25 +326,30 @@ function onRemove(id: string) {
 }
 
 .delete-btn {
-  display: none;
-  width: 18px;
-  height: 18px;
+  display: flex;
+  width: 16px;
+  height: 16px;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1;
-  border-radius: var(--radius-sm);
+  border-radius: 2px;
   padding: 0;
-  margin-left: 4px;
+  margin-left: 2px;
+  flex-shrink: 0;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.12s ease, visibility 0.12s ease;
 }
 
-.suggestion-item:hover .delete-btn,
-.suggestion-item.selected .delete-btn {
-  display: flex;
+.suggestion-item:hover .delete-btn.visible,
+.suggestion-item.selected .delete-btn.visible {
+  visibility: visible;
+  opacity: 1;
 }
 
 .delete-btn:hover {

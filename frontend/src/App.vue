@@ -113,6 +113,7 @@ import { usePanelStore } from './stores/panelStore'
 import { useSessionStore } from './stores/sessionStore'
 import { useAIStore } from './stores/aiStore'
 import { useSettingsStore } from './stores/settingsStore'
+import { useQuickCommandStore } from './stores/quickCommandStore'
 import { useUpdateCheck } from './composables/useUpdateCheck'
 import { useI18n } from './i18n'
 import { CreateSession, CloseSession, RDPHide, RDPShow, RDPSetPosition, RDPSetFocus } from '../wailsjs/go/main/App'
@@ -282,6 +283,8 @@ onMounted(() => {
   aiStore.init()
   settingsStore.init()
   updateCheck.initAutoCheck()
+  // Pre-load quick commands so suggestions can read them immediately
+  useQuickCommandStore().load()
   // Pre-load noVNC so VNC tab switches don't pay the dynamic import cost.
   import('@novnc/novnc').then((m: any) => {
     ;(window as any).__novnc_RFB = m.default || m
