@@ -104,13 +104,15 @@ jobs:
 
       - name: Package Windows portable
         if: matrix.platform == 'windows/amd64'
-        shell: bash
+        shell: pwsh
         run: |
-          mkdir -p dist_tmp
-          cp build/bin/uniTerm.exe dist_tmp/
-          VERSION=${{ env.VERSION }}
-          (cd dist_tmp && zip "../uniterm-windows-amd64-portable-${VERSION}.zip" uniTerm.exe)
-          rm -rf dist_tmp
+          New-Item -ItemType Directory -Force -Path dist_tmp | Out-Null
+          Copy-Item build/bin/uniTerm.exe dist_tmp/
+          $VERSION = "${{ env.VERSION }}"
+          Push-Location dist_tmp
+          Compress-Archive -Path uniTerm.exe -DestinationPath "../uniterm-windows-amd64-portable-${VERSION}.zip" -Force
+          Pop-Location
+          Remove-Item -Recurse -Force dist_tmp
 
       - name: Rename NSIS installer (Windows)
         if: matrix.platform == 'windows/amd64'
