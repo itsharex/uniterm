@@ -92,7 +92,9 @@
             :key="sh"
             class="shell-item"
             @click="onShellSelect(sh)"
-          >{{ getShellLabel(sh) }}</div>
+          >
+            {{ getShellLabel(sh) }}
+          </div>
         </div>
       </Teleport>
 
@@ -1142,6 +1144,10 @@ function onShellSelect(sh: string) {
 
 function getShellLabel(path: string): string {
   const lower = path.toLowerCase()
+  if (lower.startsWith('wsl://')) {
+    const distro = path.slice(6)
+    return distro ? `WSL - ${distro}` : 'WSL'
+  }
   if (lower.includes('pwsh')) return 'PowerShell'
   if (lower.includes('powershell')) return 'Windows PowerShell'
   if (lower.includes('bash')) return 'Git Bash'

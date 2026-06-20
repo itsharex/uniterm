@@ -51,24 +51,47 @@ func (s *LocalSession) Connect(config ConnectionConfig) error {
 
 	s.title = shellName(shell)
 
+	var commandLine string
+	var cmd *exec.Cmd
+
+	if distro, ok := parseWSLPath(shell); ok {
+		if distro == "" {
+			s.setStatus(StatusError)
+			return fmt.Errorf("empty WSL distribution name")
+		}
+		commandLine = wslCommandLine(distro)
+		cmd = exec.Command("wsl.exe", "-d", distro)
+		cmd.Env = os.Environ()
+	} else {
+		commandLine = buildCommandLine(shell)
+		lowerShell := strings.ToLower(shell)
+		if strings.Contains(lowerShell, "bash") {
+			if strings.Contains(lowerShell, "system32") || strings.Contains(lowerShell, "wsl") {
+				cmd = exec.Command(shell)
+				cmd.Env = os.Environ()
+			} else {
+				cmd = exec.Command(shell, "--login", "-i")
+				cmd.Env = append(os.Environ(), "TERM=xterm-256color")
+			}
+		} else {
+			cmd = exec.Command(shell)
+			cmd.Env = os.Environ()
+		}
+	}
+
 	// Try ConPTY first for a real pseudo-terminal experience.
-	// This fixes MSYS2 bash (Git Bash) which requires a TTY for correct output.
 	if conpty.IsConPtyAvailable() {
-		commandLine := buildCommandLine(shell)
 		cols, rows := s.GetPendingSize()
 		if cols <= 0 || rows <= 0 {
 			cols, rows = 80, 24
 		}
-
 		c, err := conpty.Start(commandLine, conpty.ConPtyDimensions(cols, rows))
 		if err == nil {
 			s.cpty = c
-
 			go func() {
 				_, _ = s.cpty.Wait(context.Background())
 				s.Disconnect()
 			}()
-
 			s.setStatus(StatusConnected)
 			go s.readLoop()
 			return nil
@@ -76,43 +99,27 @@ func (s *LocalSession) Connect(config ConnectionConfig) error {
 		// Fall through to pipe mode if ConPTY fails.
 	}
 
-	// Fallback pipe mode for older Windows without ConPTY.
-	lowerShell := strings.ToLower(shell)
-	if strings.Contains(lowerShell, "bash") {
-		// WSL bash does not support --login -i passed this way.
-		if strings.Contains(lowerShell, "system32") || strings.Contains(lowerShell, "wsl") {
-			s.cmd = exec.Command(shell)
-			s.cmd.Env = os.Environ()
-		} else {
-			s.cmd = exec.Command(shell, "--login", "-i")
-			s.cmd.Env = append(os.Environ(), "TERM=xterm-256color")
-		}
-	} else {
-		s.cmd = exec.Command(shell)
-		s.cmd.Env = os.Environ()
-	}
-
-	stdinPipe, err := s.cmd.StdinPipe()
+	// Pipe fallback using cmd built above.
+	stdinPipe, err := cmd.StdinPipe()
 	if err != nil {
 		s.setStatus(StatusError)
 		return fmt.Errorf("stdin pipe: %w", err)
 	}
-
-	stdoutPipe, err := s.cmd.StdoutPipe()
+	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		s.setStatus(StatusError)
 		return fmt.Errorf("stdout pipe: %w", err)
 	}
+	cmd.Stderr = cmd.Stdout
 
-	s.cmd.Stderr = s.cmd.Stdout
-
-	if err := s.cmd.Start(); err != nil {
+	if err := cmd.Start(); err != nil {
 		s.setStatus(StatusError)
 		return fmt.Errorf("start command: %w", err)
 	}
 
 	s.stdin = stdinPipe
 	s.stdout = stdoutPipe
+	s.cmd = cmd
 
 	go func() {
 		_ = s.cmd.Wait()
@@ -121,8 +128,24 @@ func (s *LocalSession) Connect(config ConnectionConfig) error {
 
 	s.setStatus(StatusConnected)
 	go s.readLoop()
-
 	return nil
+}
+
+func parseWSLPath(path string) (distro string, ok bool) {
+	const prefix = "wsl://"
+	if !strings.HasPrefix(strings.ToLower(path), prefix) {
+		return "", false
+	}
+	return path[len(prefix):], true
+}
+
+func wslCommandLine(distro string) string {
+	// Note: do not quote the distro name here. In the ConPTY path, quoted
+	// names are interpreted literally by wsl.exe and cause
+	// WSL_E_DISTRO_NOT_FOUND. Distribution names with spaces are uncommon;
+	// if needed, the pipe fallback (exec.Command with separate args) handles
+	// them correctly.
+	return fmt.Sprintf(`wsl.exe -d %s`, distro)
 }
 
 func buildCommandLine(shell string) string {
@@ -140,6 +163,15 @@ func buildCommandLine(shell string) string {
 		return fmt.Sprintf(`"%s" /k`, shell)
 	}
 	return quoted
+}
+
+func shellName(path string) string {
+	if distro, ok := parseWSLPath(path); ok {
+		return "WSL - " + distro
+	}
+	base := filepath.Base(path)
+	base = strings.TrimSuffix(base, ".exe")
+	return base
 }
 
 func (s *LocalSession) readLoop() {
@@ -241,10 +273,4 @@ func defaultShell() string {
 		return "bash.exe"
 	}
 	return "cmd.exe"
-}
-
-func shellName(path string) string {
-	base := filepath.Base(path)
-	base = strings.TrimSuffix(base, ".exe")
-	return base
 }

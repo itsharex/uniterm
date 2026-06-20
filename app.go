@@ -12,19 +12,20 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	goruntime "runtime"
 	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
 	stdsync "sync"
 	"time"
-	goruntime "runtime"
+	"unicode/utf16"
 
 	"go.bug.st/serial"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
-	"github.com/ys-ll/uniterm/backend/log"
 	"github.com/ys-ll/uniterm/backend/database"
+	"github.com/ys-ll/uniterm/backend/log"
 	"github.com/ys-ll/uniterm/backend/session"
 	"github.com/ys-ll/uniterm/backend/store"
 	"github.com/ys-ll/uniterm/backend/sync"
@@ -41,13 +42,13 @@ type App struct {
 	terminalHistoryStore *store.TerminalHistoryStore
 	syncService          *sync.SyncService
 	tunnelService        *session.TunnelService
-	mainHwnd            uintptr
-	originalWndProc     uintptr
-	wndProcCb           uintptr // keep alive to prevent GC
-	inSizeMove          bool
-	webviewDataPath     string
-	chatCancel          context.CancelFunc // active stream cancellation
-	chatCancelMu        stdsync.Mutex       // guards chatCancel
+	mainHwnd             uintptr
+	originalWndProc      uintptr
+	wndProcCb            uintptr // keep alive to prevent GC
+	inSizeMove           bool
+	webviewDataPath      string
+	chatCancel           context.CancelFunc // active stream cancellation
+	chatCancelMu         stdsync.Mutex      // guards chatCancel
 }
 
 func NewApp(webviewDataPath string) *App {
@@ -492,16 +493,16 @@ func (a *App) CreateSession(sessionType string, config session.ConnectionConfig)
 		}
 
 		// Resolve actual target port. VNC/SPICE use libvirt display
-			// numbers (port < 100 means display :N → port 5900+N).
-			targetPort := config.Port
-			if sessionType == "vnc" || sessionType == "spice" {
-				if targetPort <= 0 {
-					targetPort = 5900
-				} else if targetPort < 100 {
-					targetPort += 5900
-				}
+		// numbers (port < 100 means display :N → port 5900+N).
+		targetPort := config.Port
+		if sessionType == "vnc" || sessionType == "spice" {
+			if targetPort <= 0 {
+				targetPort = 5900
+			} else if targetPort < 100 {
+				targetPort += 5900
 			}
-			localPort, err := a.tunnelService.Start(s.ID(), *tunnelSSHConfig, config.Host, targetPort)
+		}
+		localPort, err := a.tunnelService.Start(s.ID(), *tunnelSSHConfig, config.Host, targetPort)
 		if err != nil {
 			_ = a.sessionManager.Close(s.ID())
 			return nil, fmt.Errorf("tunnel start: %w", err)
@@ -1346,6 +1347,59 @@ func (a *App) FrontendLog(tag string, message string) {
 	log.Writef("[%s] %s", tag, message)
 }
 
+// listWSLDistros returns the names of installed WSL distributions.
+// On non-Windows platforms, or if WSL is not available, it returns an empty list.
+func listWSLDistros() ([]string, error) {
+	if goruntime.GOOS != "windows" {
+		return nil, nil
+	}
+	cmd := exec.Command("wsl.exe", "-l", "-q")
+	out, err := cmd.Output()
+	if err != nil {
+		// WSL may not be installed/enabled; treat as empty list.
+		return nil, nil
+	}
+	return parseWSLDistros(out), nil
+}
+
+func parseWSLDistros(raw []byte) []string {
+	if len(raw) == 0 {
+		return nil
+	}
+
+	// wsl.exe -l -q outputs UTF-16 LE with a BOM on many systems.
+	content := string(raw)
+	if len(raw) >= 2 && raw[0] == 0xFF && raw[1] == 0xFE {
+		utf16le := make([]uint16, 0, len(raw)/2)
+		for i := 2; i+1 < len(raw); i += 2 {
+			utf16le = append(utf16le, uint16(raw[i])|uint16(raw[i+1])<<8)
+		}
+		content = string(utf16.Decode(utf16le))
+	}
+
+	var distros []string
+	seen := make(map[string]bool)
+	for _, line := range strings.Split(content, "\n") {
+		line = strings.TrimSpace(line)
+		// Remove null bytes and default-marker asterisk.
+		line = strings.ReplaceAll(line, "\x00", "")
+		line = strings.TrimSpace(strings.TrimPrefix(line, "*"))
+		if line == "" {
+			continue
+		}
+		// Skip internal/docker distros that are not useful as shells.
+		lower := strings.ToLower(line)
+		if strings.Contains(lower, "docker-desktop") {
+			continue
+		}
+		if !seen[line] {
+			seen[line] = true
+			distros = append(distros, line)
+		}
+	}
+	return distros
+}
+
 // GetAvailableShells returns a list of shell executables found on the system.
 func (a *App) GetAvailableShells() []string {
 	var shells []string
@@ -1396,6 +1450,12 @@ func (a *App) GetAvailableShells() []string {
 		}
 		if !hasShell("bash.exe") {
 			add("bash.exe")
+		}
+		// Append installed WSL distributions as pseudo-shell paths.
+		if distros, _ := listWSLDistros(); len(distros) > 0 {
+			for _, d := range distros {
+				shells = append(shells, "wsl://"+d)
+			}
 		}
 	default:
 		add(os.Getenv("SHELL"))
