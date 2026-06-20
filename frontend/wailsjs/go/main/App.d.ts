@@ -21,6 +21,8 @@ export function ClearQueryHistory(arg1:string):Promise<void>;
 
 export function CloseSession(arg1:string):Promise<void>;
 
+export function ConnectSerial(arg1:string,arg2:number,arg3:number,arg4:number,arg5:string):Promise<session.SessionInfo>;
+
 export function CreateDatabase(arg1:string,arg2:string):Promise<void>;
 
 export function CreateSession(arg1:string,arg2:session.ConnectionConfig):Promise<session.SessionInfo>;
@@ -74,6 +76,8 @@ export function GetTableSchema(arg1:string,arg2:string,arg3:string):Promise<data
 export function GetTables(arg1:string,arg2:string):Promise<Array<database.TableInfo>>;
 
 export function KillProcess(arg1:string,arg2:number,arg3:string):Promise<void>;
+
+export function ListSerialPorts():Promise<Array<string>>;
 
 export function ListSessions():Promise<Array<session.SessionInfo>>;
 

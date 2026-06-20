@@ -30,6 +30,10 @@ export function CloseSession(arg1) {
   return window['go']['main']['App']['CloseSession'](arg1);
 }
 
+export function ConnectSerial(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['ConnectSerial'](arg1, arg2, arg3, arg4, arg5);
+}
+
 export function CreateDatabase(arg1, arg2) {
   return window['go']['main']['App']['CreateDatabase'](arg1, arg2);
 }
@@ -136,6 +140,10 @@ export function GetTables(arg1, arg2) {
 
 export function KillProcess(arg1, arg2, arg3) {
   return window['go']['main']['App']['KillProcess'](arg1, arg2, arg3);
+}
+
+export function ListSerialPorts() {
+  return window['go']['main']['App']['ListSerialPorts']();
 }
 
 export function ListSessions() {

@@ -9,7 +9,7 @@
       @tab-dragstart="onTabDragStart"
     />
     <div class="main-content">
-      <Sidebar :visible="sidebarVisible" @toggle="sidebarVisible = !sidebarVisible" @connect="onConnect" @connect-sftp="onConnectSftp" @connect-ftp="onConnectFtp" @connect-rdp="onConnectRDP" @connect-vnc="onConnectVNC" @connect-spice="onConnectSPICE" @connect-d-b="onConnectDB" @connect-monitor="onConnectMonitor" @new-local-terminal-with-shell="createLocalTerminalWithShell" />
+      <Sidebar :visible="sidebarVisible" @toggle="sidebarVisible = !sidebarVisible" @connect="onConnect" @connect-serial="showSerialDialog = true" @connect-sftp="onConnectSftp" @connect-ftp="onConnectFtp" @connect-rdp="onConnectRDP" @connect-vnc="onConnectVNC" @connect-spice="onConnectSPICE" @connect-d-b="onConnectDB" @connect-monitor="onConnectMonitor" @new-local-terminal-with-shell="createLocalTerminalWithShell" />
       <div class="tab-area">
         <template v-if="activeTab">
           <KeepAlive>
@@ -71,6 +71,7 @@
       <AISidebar />
     </div>
     <ConnectionForm v-model="showConnectionForm" @save="onSaveOnly" @connect="onConnect" />
+    <SerialConnectDialog v-model="showSerialDialog" @connect="onConnectSerial" />
 
     <!-- Input context menu -->
     <div
@@ -105,6 +106,7 @@ import MonitorTabContent from './components/MonitorTabContent.vue'
 import ConnectionForm from './components/ConnectionForm.vue'
 import AISidebar from './components/AISidebar.vue'
 import SyncConflictDialog from './components/SyncConflictDialog.vue'
+import SerialConnectDialog from './components/SerialConnectDialog.vue'
 import { useConnectionStore } from './stores/connectionStore'
 import { useTabStore } from './stores/tabStore'
 import { usePanelStore } from './stores/panelStore'
@@ -195,6 +197,7 @@ function RDPShowForOverlay() {
 
 
 const showConnectionForm = ref(false)
+const showSerialDialog = ref(false)
 const sidebarVisible = ref(localStorage.getItem('sidebarVisible') !== 'false')
 
 // Input context menu state
@@ -639,6 +642,24 @@ async function onConnectDB(config: ConnectionConfig) {
     panelStore.removePanel(panel.id)
     msg.error(`${t('db.connectFailed')}: ${errMsg}`)
   }
+}
+
+async function onConnectSerial(sessionId: string, portName: string, baudRate: number) {
+  const config: ConnectionConfig = {
+    id: '',
+    name: `${portName} (${baudRate})`,
+    type: 'serial' as any,
+    host: portName,
+    port: baudRate,
+    user: '',
+    authType: 'password' as any,
+  }
+  const panel = panelStore.createPanel(config, 'serial')
+  panel.title = `${portName} (${baudRate})`
+  panelStore.bindSession(panel.id, sessionId)
+  sessionStore.initSession(sessionId)
+  const tab = tabStore.createTerminalTab(panel.title, panel.id)
+  panelStore.movePanelToTab(panel.id, tab.id)
 }
 
 // Show/hide native RDP window on tab switch.

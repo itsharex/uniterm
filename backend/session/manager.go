@@ -45,17 +45,20 @@ func (sm *SessionManager) Create(sessionType string, config ConnectionConfig) (S
 	case "monitor":
 		s = NewMonitorSession(config.ID)
 
-		case "telnet":
-			s = NewTelnetSession(config.ID)
+	case "telnet":
+		s = NewTelnetSession(config.ID)
 
-		case "mosh":
-			s = NewMoshSession(config.ID)
+	case "mosh":
+		s = NewMoshSession(config.ID)
 
-		case "spice":
-			s = NewSPICESession(config.ID)
+	case "spice":
+		s = NewSPICESession(config.ID)
 
-		case "ftp":
-			s = NewFTPSession(config.ID)
+	case "ftp":
+		s = NewFTPSession(config.ID)
+
+	case "serial":
+		s = NewSerialSession(config.ID)
 
 	default:
 		return nil, fmt.Errorf("unsupported session type: %s", sessionType)

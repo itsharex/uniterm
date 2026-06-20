@@ -20,6 +20,8 @@ import (
 	"time"
 	goruntime "runtime"
 
+	"go.bug.st/serial"
+
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"github.com/ys-ll/uniterm/backend/log"
 	"github.com/ys-ll/uniterm/backend/database"
@@ -1439,6 +1441,111 @@ func (a *App) GetDefaultShell() string {
 		}
 		return "sh"
 	}
+}
+
+// ListSerialPorts returns available serial port names.
+func (a *App) ListSerialPorts() ([]string, error) {
+	return session.ListSerialPorts()
+}
+
+// ConnectSerial creates a new serial session and connects asynchronously.
+func (a *App) ConnectSerial(portName string, baudRate int, dataBits int, stopBits float64, parity string) (*session.SessionInfo, error) {
+	if a.sessionManager == nil {
+		return nil, fmt.Errorf("session manager not initialized")
+	}
+
+	// Map JS-friendly strings to serial library constants
+	var sb serial.StopBits
+	switch stopBits {
+	case 1.5:
+		sb = serial.OnePointFiveStopBits
+	case 2:
+		sb = serial.TwoStopBits
+	default:
+		sb = serial.OneStopBit
+	}
+
+	parityMap := map[string]serial.Parity{
+		"none":  serial.NoParity,
+		"odd":   serial.OddParity,
+		"even":  serial.EvenParity,
+		"mark":  serial.MarkParity,
+		"space": serial.SpaceParity,
+	}
+	par, ok := parityMap[strings.ToLower(parity)]
+	if !ok {
+		par = serial.NoParity
+	}
+
+	serialCfg := session.SerialConfig{
+		PortName: portName,
+		BaudRate: baudRate,
+		DataBits: dataBits,
+		StopBits: sb,
+		Parity:   par,
+	}
+
+	config := session.ConnectionConfig{
+		Name: fmt.Sprintf("%s (%d)", portName, baudRate),
+		Type: "serial",
+	}
+
+	s, err := a.sessionManager.Create("serial", config)
+	if err != nil {
+		return nil, err
+	}
+
+	serSess, ok := s.(*session.SerialSession)
+	if !ok {
+		_ = a.sessionManager.Close(s.ID())
+		return nil, fmt.Errorf("internal error: session is not SerialSession")
+	}
+	serSess.SetSerialConfig(serialCfg)
+
+	// Wire callbacks (same pattern as CreateSession)
+	s.SetOnDataCallback(func(data []byte) {
+		runtime.EventsEmit(a.ctx, "session:data", map[string]interface{}{
+			"id":   s.ID(),
+			"data": string(data),
+		})
+	})
+	s.SetOnBinaryCallback(func(data []byte) {
+		runtime.EventsEmit(a.ctx, "session:binary", map[string]interface{}{
+			"id":   s.ID(),
+			"data": base64.StdEncoding.EncodeToString(data),
+		})
+	})
+	s.SetOnStatusChangeCallback(func(status session.SessionStatus) {
+		runtime.EventsEmit(a.ctx, "session:status", map[string]interface{}{
+			"id":     s.ID(),
+			"status": status,
+		})
+	})
+
+	// Connect asynchronously
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Writef("serial session %s connect panic: %v\n%s", s.ID(), r, string(debug.Stack()))
+			}
+		}()
+		if err := s.Connect(config); err != nil {
+			if a.ctx != nil {
+				runtime.EventsEmit(a.ctx, "session:data", map[string]interface{}{
+					"id":   s.ID(),
+					"data": fmt.Sprintf("\r\n\x1b[31m[Serial connection failed: %v]\x1b[0m\r\n", err),
+				})
+			}
+			_ = a.sessionManager.Close(s.ID())
+		}
+	}()
+
+	return &session.SessionInfo{
+		ID:     s.ID(),
+		Type:   s.Type(),
+		Title:  s.Title(),
+		Status: s.Status(),
+	}, nil
 }
 
 // ── Database methods ──

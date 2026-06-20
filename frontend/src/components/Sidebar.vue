@@ -62,6 +62,8 @@
           </button>
           <template #dropdown>
             <el-dropdown-menu>
+              <el-dropdown-item command="new-connection">{{ t('header.newConnection') }}</el-dropdown-item>
+              <el-dropdown-item command="new-group">{{ t('conn.newGroupTitle') }}</el-dropdown-item>
               <div
                 v-if="settingsStore.availableShells.length > 0"
                 class="submenu-wrapper"
@@ -72,8 +74,7 @@
                   {{ t('header.newLocalTerminal') }} <ChevronRight :size="12" />
                 </el-dropdown-item>
               </div>
-              <el-dropdown-item command="new-connection">{{ t('header.newConnection') }}</el-dropdown-item>
-              <el-dropdown-item command="new-group">{{ t('conn.newGroupTitle') }}</el-dropdown-item>
+              <el-dropdown-item command="new-serial">{{ t('sidebar.connectSerial') }}</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -393,7 +394,7 @@ import type { ConnectionConfig, ConnectionGroup } from '../types/session'
 defineProps<{
   visible: boolean
 }>()
-const emit = defineEmits(['connect', 'connectSftp', 'connectFtp', 'connectRdp', 'connectVnc', 'connectSpice', 'connectDB', 'connectMonitor', 'toggle', 'new-local-terminal-with-shell'])
+const emit = defineEmits(['connect', 'connectSftp', 'connectFtp', 'connectRdp', 'connectVnc', 'connectSpice', 'connectDB', 'connectMonitor', 'connectSerial', 'toggle', 'new-local-terminal-with-shell'])
 const connectionStore = useConnectionStore()
 const settingsStore = useSettingsStore()
 const { t } = useI18n()
@@ -1127,6 +1128,8 @@ function onNewConnCommand(cmd: string) {
     showForm.value = true
     editConfig.value = undefined
     newConnGroupId.value = undefined
+  } else if (cmd === 'new-serial') {
+    emit('connectSerial')
   } else if (cmd === 'new-group') {
     showNewGroupDialog.value = true
   }

@@ -17,6 +17,7 @@ require (
 	github.com/unixshells/mosh-go v0.5.2
 	github.com/wailsapp/wails/v2 v2.12.0
 	github.com/zalando/go-keyring v0.2.8
+	go.bug.st/serial v1.7.1
 	golang.org/x/crypto v0.50.0
 	golang.org/x/sys v0.43.0
 )
