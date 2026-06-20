@@ -8,6 +8,7 @@
 [English](README.md)
 
 [![GitHub release](https://img.shields.io/github/v/release/ys-ll/uniterm?include_prereleases)](https://github.com/ys-ll/uniterm/releases)
+[![GitHub downloads](https://img.shields.io/github/downloads/ys-ll/uniterm/total)](https://github.com/ys-ll/uniterm/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/ys-ll/uniterm)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/ys-ll/uniterm)](https://github.com/ys-ll/uniterm)
