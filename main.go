@@ -42,10 +42,21 @@ func main() {
 
 	app := NewApp(webviewDataPath)
 
+	// Linux multi-monitor maximize workaround:
+	// Wails sets default max size to primary display, which can clamp
+	// maximize on secondary monitors. Set to large values to disable.
+	// See: https://github.com/wailsapp/wails/issues/2431
+	maxW, maxH := 0, 0
+	if runtime.GOOS == "linux" {
+		maxW, maxH = 9999, 9999
+	}
+
 	err := wails.Run(&options.App{
 		Title:  "uniTerm",
 		Width:  1200,
 		Height:    800,
+		MaxWidth:  maxW,
+		MaxHeight: maxH,
 		Frameless: runtime.GOOS != "darwin",
 		AssetServer: &assetserver.Options{
 			Assets: assets,

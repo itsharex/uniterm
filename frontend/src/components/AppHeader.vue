@@ -52,8 +52,12 @@ import {
   Environment,
   WindowMinimise,
   WindowToggleMaximise,
+  WindowMaximise,
+  WindowUnmaximise,
   WindowIsMaximised,
+  WindowSetMaxSize,
   Quit,
+  ScreenGetAll,
 } from '../../wailsjs/runtime'
 
 const { t } = useI18n()
@@ -83,8 +87,35 @@ function onMinimise() {
 }
 
 async function onMaximise() {
-  WindowToggleMaximise()
+  if (platform.value === 'linux') {
+    await linuxMaximise()
+  } else {
+    WindowToggleMaximise()
+  }
   setTimeout(updateMaximisedState, 100)
+}
+
+async function linuxMaximise() {
+  const maximised = await WindowIsMaximised()
+  if (maximised) {
+    // Restore: use native unmaximise, then clear max size constraint
+    WindowUnmaximise()
+    WindowSetMaxSize(0, 0)
+  } else {
+    // Before native maximise, set max size to current screen dimensions
+    // to prevent GTK from clamping to the wrong monitor's size.
+    try {
+      const screens = await ScreenGetAll()
+      const current = screens.find((s: { isCurrent: boolean }) => s.isCurrent) || screens[0]
+      if (current) {
+        WindowSetMaxSize(current.width, current.height)
+      }
+    } catch {
+      // Fallback: set large max size to disable any constraint
+      WindowSetMaxSize(9999, 9999)
+    }
+    WindowMaximise()
+  }
 }
 
 function onClose() {
