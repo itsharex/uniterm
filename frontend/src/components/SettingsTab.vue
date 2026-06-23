@@ -290,6 +290,61 @@
         </div>
       </div>
 
+      <!-- 快捷键设置 -->
+      <div v-if="settingsStore.activeCategory === 'keyboard'" class="settings-section">
+        <h2 class="section-title">{{ t('shortcut.title') }}</h2>
+        <table class="kb-table">
+          <thead>
+            <tr>
+              <th>{{ t('shortcut.colFunction') }}</th>
+              <th>{{ t('shortcut.colBinding') }}</th>
+              <th style="width:190px;">{{ t('shortcut.colActions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="action in (Object.keys(SHORTCUT_LABELS) as ShortcutAction[])"
+              :key="action"
+            >
+              <td>{{ t(SHORTCUT_LABELS[action] || action) }}</td>
+              <td><kbd class="kb-key">{{ bindingDisplay(action) }}</kbd></td>
+              <td class="kb-actions">
+                <el-button
+                  size="small"
+                  :type="rebindingAction === action ? 'warning' : 'default'"
+                  @click="startRebind(action)"
+                >
+                  {{ rebindingAction === action ? t('shortcut.pressKey') : t('shortcut.edit') }}
+                </el-button>
+                <el-button
+                  v-if="rebindingAction === action"
+                  size="small"
+                  @click="stopRebind()"
+                >
+                  {{ t('shortcut.cancel') }}
+                </el-button>
+                <el-button
+                  v-if="rebindingAction === action"
+                  size="small"
+                  type="danger"
+                  @click="clearBinding(action)"
+                >
+                  {{ t('shortcut.clear') }}
+                </el-button>
+                <el-button
+                  v-if="!isDefaultBinding(action) && rebindingAction !== action"
+                  size="small"
+                  type="danger"
+                  @click="resetBinding(action)"
+                >
+                  {{ t('shortcut.reset') }}
+                </el-button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <!-- AI助理设置 -->
       <div v-if="settingsStore.activeCategory === 'ai'" class="settings-section">
         <h2 class="section-title">{{ t('settings.ai') }}</h2>
@@ -375,7 +430,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from 'vue'
-import { Settings, Monitor, MessageCircleMore, Info, RefreshCw, Pencil, Trash2, Globe } from '@lucide/vue'
+import { Settings, Monitor, MessageCircleMore, Info, RefreshCw, Pencil, Trash2, Globe, Keyboard } from '@lucide/vue'
 import { msg } from '../services/message'
 import { FetchModels } from '../../wailsjs/go/main/App'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -383,8 +438,9 @@ import { useSyncStore } from '../stores/syncStore'
 import { useUpdateCheck } from '../composables/useUpdateCheck'
 import { useI18n } from '../i18n'
 import { BrowserOpenURL } from '../../wailsjs/runtime'
-import { TERMINAL_THEMES, FONT_OPTIONS, LANGUAGE_OPTIONS } from '../types/settings'
-import type { AIModelConfig } from '../types/settings'
+import { TERMINAL_THEMES, FONT_OPTIONS, LANGUAGE_OPTIONS, DEFAULT_KEYBOARD, SHORTCUT_LABELS } from '../types/settings'
+import type { AIModelConfig, ShortcutAction, KeyBinding, KeyboardSettings } from '../types/settings'
+import { uninstallGlobalListener, installGlobalListener } from '../composables/useKeyboardShortcuts'
 import AddRepoDialog from './AddRepoDialog.vue'
 import EditRepoDialog from './EditRepoDialog.vue'
 import ChangePasswordDialog from './ChangePasswordDialog.vue'
@@ -426,11 +482,115 @@ async function handleCheckUpdate() {
 syncStore.loadConfig()
 
 watch(() => settingsStore.openCategory, (cat) => {
-  if (cat && (cat === 'basic' || cat === 'terminal' || cat === 'ai' || cat === 'sync' || cat === 'about')) {
+  if (cat && (cat === 'basic' || cat === 'terminal' || cat === 'ai' || cat === 'sync' || cat === 'about' || cat === 'keyboard')) {
     settingsStore.activeCategory = cat
     settingsStore.openCategory = null
   }
 })
+
+// ── Keyboard rebinding ──
+const rebindingAction = ref<ShortcutAction | null>(null)
+
+function bindingDisplay(action: ShortcutAction): string {
+  const b = settingsStore.settings.keyboard[action]
+  if (!b) return ''
+  const parts: string[] = []
+  if (b.ctrl) parts.push('Ctrl')
+  if (b.shift) parts.push('Shift')
+  if (b.alt) parts.push('Alt')
+  parts.push(b.key)
+  return parts.join('+')
+}
+
+function isDefaultBinding(action: ShortcutAction): boolean {
+  const current = settingsStore.settings.keyboard[action]
+  const def = DEFAULT_KEYBOARD[action]
+  if (!current || !def) return true
+  return current.ctrl === def.ctrl && current.shift === def.shift
+    && current.alt === def.alt && current.key === def.key
+}
+
+function resetBinding(action: ShortcutAction) {
+  settingsStore.settings.keyboard = {
+    ...settingsStore.settings.keyboard,
+    [action]: { ...DEFAULT_KEYBOARD[action] }
+  }
+  settingsStore.save()
+}
+
+let rebindListenerActive = false
+
+function startRebind(action: ShortcutAction) {
+  rebindingAction.value = action
+  uninstallGlobalListener()
+  if (!rebindListenerActive) {
+    rebindListenerActive = true
+    document.addEventListener('keydown', onRebindKeydown, true)
+    window.addEventListener('blur', onRebindBlur)
+  }
+}
+
+function stopRebind() {
+  if (rebindListenerActive) {
+    rebindListenerActive = false
+    document.removeEventListener('keydown', onRebindKeydown, true)
+    window.removeEventListener('blur', onRebindBlur)
+  }
+  rebindingAction.value = null
+  installGlobalListener()
+}
+
+function clearBinding(action: ShortcutAction) {
+  settingsStore.settings.keyboard = {
+    ...settingsStore.settings.keyboard,
+    [action]: { ctrl: false, shift: false, alt: false, key: '' }
+  }
+  settingsStore.save()
+  stopRebind()
+}
+
+function onRebindKeydown(e: KeyboardEvent) {
+  if (!rebindingAction.value) return stopRebind()
+  e.preventDefault()
+  e.stopPropagation()
+  const key = e.key
+  if (key === 'Escape') return stopRebind()
+  if (key === 'Control' || key === 'Shift' || key === 'Alt' || key === 'Meta') return
+
+  const binding: KeyBinding = {
+    ctrl: e.ctrlKey || e.metaKey,
+    shift: e.shiftKey,
+    alt: e.altKey,
+    key: key.toLowerCase(),
+  }
+
+  // Check for conflicts and clear them
+  const conflictAction = findConflict(binding)
+  const kb = { ...settingsStore.settings.keyboard }
+  kb[rebindingAction.value] = binding
+  if (conflictAction) {
+    kb[conflictAction] = { ctrl: false, shift: false, alt: false, key: '' }
+  }
+  settingsStore.settings.keyboard = kb as KeyboardSettings
+  settingsStore.save()
+  stopRebind()
+}
+
+function findConflict(binding: KeyBinding): ShortcutAction | null {
+  const targetKey = `${binding.ctrl ? 'ctrl+' : ''}${binding.shift ? 'shift+' : ''}${binding.alt ? 'alt+' : ''}${binding.key.toLowerCase()}`
+  const kb = settingsStore.settings.keyboard
+  for (const [action, b] of Object.entries(kb) as [ShortcutAction, KeyBinding][]) {
+    if (action === rebindingAction.value) continue
+    if (!b.key) continue
+    const key = `${b.ctrl ? 'ctrl+' : ''}${b.shift ? 'shift+' : ''}${b.alt ? 'alt+' : ''}${b.key.toLowerCase()}`
+    if (key === targetKey) return action
+  }
+  return null
+}
+
+function onRebindBlur() {
+  stopRebind()
+}
 
 const categories = computed(() => {
   // Explicitly read language to ensure reactivity tracking
@@ -438,6 +598,7 @@ const categories = computed(() => {
   const cats = [
     { key: 'basic', label: t('settings.basic'), icon: Settings },
     { key: 'terminal', label: t('settings.terminal'), icon: Monitor },
+    { key: 'keyboard', label: t('shortcut.title'), icon: Keyboard },
     { key: 'ai', label: t('settings.ai'), icon: MessageCircleMore },
     { key: 'sync', label: t('settings.sync'), icon: RefreshCw },
     { key: 'about', label: t('settings.about'), icon: Info },
@@ -922,5 +1083,44 @@ function getShellLabel(path: string): string {
   margin-top: 12px;
   font-size: 13px;
   font-family: var(--font-ui);
+}
+
+.kb-key {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.kb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.kb-table th, .kb-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.kb-table th {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.kb-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.kb-actions {
+  display: flex;
+  gap: 6px;
 }
 </style>

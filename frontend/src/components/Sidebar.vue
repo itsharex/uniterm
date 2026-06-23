@@ -16,6 +16,7 @@
     <template v-if="activeView === 'connections'">
       <div class="search-box">
         <el-input
+          ref="searchInputRef"
           v-model="searchQuery"
           :placeholder="t('sidebar.searchPlaceholder')"
           clearable
@@ -410,8 +411,19 @@ watch(showForm, (val) => {
 })
 
 const searchQuery = ref('')
+const searchInputRef = ref<any>(null)
 const selectedTypeFilter = ref('all')
 const focusedId = ref<string | null>(null)
+
+function focusSearch() {
+  nextTick(() => {
+    const el = searchInputRef.value?.$el?.querySelector('input')
+    if (el instanceof HTMLInputElement) {
+      el.focus()
+      el.select()
+    }
+  })
+}
 
 // ── Type filter ──
 interface TypeOption {
@@ -1239,6 +1251,8 @@ onUnmounted(() => {
     closeEmptyAreaMenu()
   })
 })
+
+defineExpose({ focusSearch })
 </script>
 
 <style scoped>

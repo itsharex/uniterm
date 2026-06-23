@@ -82,6 +82,7 @@ import { FrontendLog } from '../../wailsjs/go/main/App'
 import { EventsOn, BrowserOpenURL } from '../../wailsjs/runtime'
 import { useSettingsStore } from '../stores/settingsStore'
 import { highlight } from '../composables/useHighlight'
+import { onTerminalKey } from '../composables/useKeyboardShortcuts'
 import { useSessionStore } from '../stores/sessionStore'
 import { useTabStore } from '../stores/tabStore'
 import { usePanelStore } from '../stores/panelStore'
@@ -952,6 +953,9 @@ onMounted(() => {
 
   // Ctrl+F to open search
   keyHandlerDispose = terminal.attachCustomKeyEventHandler((e) => {
+    // Check global shortcuts first (Ctrl+Shift+/Alt+ combos)
+    if (e.type === 'keydown' && !onTerminalKey(e)) return false
+
     if (e.ctrlKey && e.key === 'f' && e.type === 'keydown') {
       openSearch()
       return false

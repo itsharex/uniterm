@@ -87,6 +87,7 @@
     <div class="ai-input">
       <div class="textarea-wrap">
         <el-input
+          ref="chatInputRef"
           v-model="input"
           type="textarea"
           :rows="4"
@@ -163,6 +164,16 @@ const tabStore = useTabStore()
 const panelStore = usePanelStore()
 const { t } = useI18n()
 const input = ref('')
+const chatInputRef = ref<any>(null)
+
+function focusInput() {
+  nextTick(() => {
+    const el = chatInputRef.value?.$el?.querySelector('textarea')
+    if (el instanceof HTMLTextAreaElement) {
+      el.focus()
+    }
+  })
+}
 
 const visibleMessages = computed(() => {
   return aiStore.messages.filter(m => {
@@ -519,6 +530,8 @@ onUnmounted(() => {
   }
   mutationObserver?.disconnect()
 })
+
+defineExpose({ focusInput })
 </script>
 
 <style scoped>

@@ -31,11 +31,60 @@ export interface AISettings {
   activeModelId: string
 }
 
+export type ShortcutAction =
+  | 'nextTab' | 'prevTab'
+  | 'newConnection' | 'toggleSidebar'
+  | 'focusAI' | 'focusTerminal' | 'lockAI'
+  | 'closePanel'
+  | 'navigatePrev' | 'navigateNext'
+  | 'duplicateSession'
+  | 'openSettings'
+
+export interface KeyBinding {
+  ctrl: boolean
+  shift: boolean
+  alt: boolean
+  key: string
+}
+
+export type KeyboardSettings = Record<ShortcutAction, KeyBinding>
+
+export const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
+  nextTab: 'shortcut.nextTab',
+  prevTab: 'shortcut.prevTab',
+  navigatePrev: 'shortcut.navigatePrev',
+  navigateNext: 'shortcut.navigateNext',
+  closePanel: 'shortcut.closePanel',
+  toggleSidebar: 'shortcut.toggleSidebar',
+  focusTerminal: 'shortcut.focusTerminal',
+  focusAI: 'shortcut.focusAI',
+  lockAI: 'shortcut.lockAI',
+  newConnection: 'shortcut.newConnection',
+  duplicateSession: 'shortcut.duplicateSession',
+  openSettings: 'shortcut.openSettings',
+}
+
+export const DEFAULT_KEYBOARD: KeyboardSettings = {
+  nextTab: { ctrl: true, shift: false, alt: false, key: 'tab' },
+  prevTab: { ctrl: true, shift: true, alt: false, key: 'tab' },
+  newConnection: { ctrl: true, shift: true, alt: false, key: 'n' },
+  toggleSidebar: { ctrl: true, shift: true, alt: false, key: 'h' },
+  focusTerminal: { ctrl: true, shift: true, alt: false, key: 'j' },
+  focusAI: { ctrl: true, shift: true, alt: false, key: 'k' },
+  closePanel: { ctrl: true, shift: true, alt: false, key: 'q' },
+  navigatePrev: { ctrl: false, shift: false, alt: true, key: 'arrowleft' },
+  navigateNext: { ctrl: false, shift: false, alt: true, key: 'arrowright' },
+  lockAI: { ctrl: true, shift: true, alt: false, key: 'l' },
+  duplicateSession: { ctrl: true, shift: true, alt: false, key: 'd' },
+  openSettings: { ctrl: true, shift: true, alt: false, key: 'c' },
+}
+
 export interface AppSettings {
   theme: Theme
   language: Language
   terminal: TerminalSettings
   ai: AISettings
+  keyboard: KeyboardSettings
   autoCheckUpdate: boolean
 }
 
@@ -64,6 +113,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     ],
     activeModelId: 'model-default'
   },
+  keyboard: { ...DEFAULT_KEYBOARD },
   autoCheckUpdate: true
 }
 

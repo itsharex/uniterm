@@ -698,6 +698,24 @@ export namespace store {
 		    return a;
 		}
 	}
+	export class KeyBinding {
+	    ctrl: boolean;
+	    shift: boolean;
+	    alt: boolean;
+	    key: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new KeyBinding(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ctrl = source["ctrl"];
+	        this.shift = source["shift"];
+	        this.alt = source["alt"];
+	        this.key = source["key"];
+	    }
+	}
 	export class TerminalSettings {
 	    theme: string;
 	    fontFamily: string;
@@ -729,6 +747,7 @@ export namespace store {
 	    language: string;
 	    terminal: TerminalSettings;
 	    ai: AISettings;
+	    keyboard: Record<string, KeyBinding>;
 	    autoCheckUpdate?: boolean;
 	
 	    static createFrom(source: any = {}) {
@@ -741,6 +760,7 @@ export namespace store {
 	        this.language = source["language"];
 	        this.terminal = this.convertValues(source["terminal"], TerminalSettings);
 	        this.ai = this.convertValues(source["ai"], AISettings);
+	        this.keyboard = this.convertValues(source["keyboard"], KeyBinding, true);
 	        this.autoCheckUpdate = source["autoCheckUpdate"];
 	    }
 	
@@ -776,6 +796,7 @@ export namespace store {
 	        this.command = source["command"];
 	    }
 	}
+	
 	export class QuickCommand {
 	    id: string;
 	    name?: string;
