@@ -43,12 +43,20 @@ type AISettings struct {
 	ActiveModelID string          `json:"activeModelId"`
 }
 
+type KeyBinding struct {
+	Ctrl  bool   `json:"ctrl"`
+	Shift bool   `json:"shift"`
+	Alt   bool   `json:"alt"`
+	Key   string `json:"key"`
+}
+
 type AppSettings struct {
-	Theme            string           `json:"theme"`
-	Language         string           `json:"language"`
-	Terminal         TerminalSettings `json:"terminal"`
-	AI               AISettings       `json:"ai"`
-	AutoCheckUpdate  *bool            `json:"autoCheckUpdate"`
+	Theme            string                `json:"theme"`
+	Language         string                `json:"language"`
+	Terminal         TerminalSettings      `json:"terminal"`
+	AI               AISettings            `json:"ai"`
+	Keyboard         map[string]KeyBinding `json:"keyboard"`
+	AutoCheckUpdate  *bool                 `json:"autoCheckUpdate"`
 }
 
 type SettingsStore struct {
@@ -166,6 +174,24 @@ func defaultSettings() AppSettings {
 			},
 			ActiveModelID: "model-default",
 		},
+		Keyboard:        defaultKeyboard(),
 		AutoCheckUpdate: boolPtr(true),
+	}
+}
+
+func defaultKeyboard() map[string]KeyBinding {
+	return map[string]KeyBinding{
+		"nextTab":         {Ctrl: true, Shift: false, Alt: false, Key: "tab"},
+		"prevTab":         {Ctrl: true, Shift: true, Alt: false, Key: "tab"},
+		"newConnection":   {Ctrl: true, Shift: true, Alt: false, Key: "n"},
+		"toggleSidebar":   {Ctrl: true, Shift: true, Alt: false, Key: "h"},
+		"focusTerminal":   {Ctrl: true, Shift: true, Alt: false, Key: "j"},
+		"focusAI":         {Ctrl: true, Shift: true, Alt: false, Key: "k"},
+		"lockAI":          {Ctrl: true, Shift: true, Alt: false, Key: "l"},
+		"duplicateSession":{Ctrl: true, Shift: true, Alt: false, Key: "d"},
+		"closePanel":      {Ctrl: true, Shift: true, Alt: false, Key: "q"},
+		"navigatePrev":    {Ctrl: false, Shift: false, Alt: true, Key: "arrowleft"},
+		"navigateNext":    {Ctrl: false, Shift: false, Alt: true, Key: "arrowright"},
+		"openSettings":    {Ctrl: true, Shift: true, Alt: false, Key: "c"},
 	}
 }

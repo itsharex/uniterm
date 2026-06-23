@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { AppSettings, AIModelConfig } from '../types/settings'
-import { DEFAULT_SETTINGS } from '../types/settings'
+import { DEFAULT_SETTINGS, DEFAULT_KEYBOARD } from '../types/settings'
 import { SaveSettings, LoadSettings, GetAvailableShells } from '../../wailsjs/go/main/App'
 import { EventsOn } from '../../wailsjs/runtime'
 import { setLocale } from '../i18n'
@@ -164,6 +164,10 @@ function mergeSettings(loaded: AppSettings): AppSettings {
     ai: {
       models: loaded.ai?.models?.length ? loaded.ai.models : DEFAULT_SETTINGS.ai.models,
       activeModelId: loaded.ai?.activeModelId || DEFAULT_SETTINGS.ai.activeModelId
+    },
+    keyboard: {
+      ...DEFAULT_KEYBOARD,
+      ...(loaded.keyboard || {})
     },
     autoCheckUpdate: loaded.autoCheckUpdate ?? DEFAULT_SETTINGS.autoCheckUpdate,
   }

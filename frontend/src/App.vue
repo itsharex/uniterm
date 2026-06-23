@@ -9,7 +9,7 @@
       @tab-dragstart="onTabDragStart"
     />
     <div class="main-content">
-      <Sidebar :visible="sidebarVisible" @toggle="sidebarVisible = !sidebarVisible" @connect="onConnect" @connect-serial="showSerialDialog = true" @connect-sftp="onConnectSftp" @connect-ftp="onConnectFtp" @connect-rdp="onConnectRDP" @connect-vnc="onConnectVNC" @connect-spice="onConnectSPICE" @connect-d-b="onConnectDB" @connect-monitor="onConnectMonitor" @new-local-terminal-with-shell="createLocalTerminalWithShell" />
+      <Sidebar ref="sidebarRef" :visible="sidebarVisible" @toggle="sidebarVisible = !sidebarVisible" @connect="onConnect" @connect-serial="showSerialDialog = true" @connect-sftp="onConnectSftp" @connect-ftp="onConnectFtp" @connect-rdp="onConnectRDP" @connect-vnc="onConnectVNC" @connect-spice="onConnectSPICE" @connect-d-b="onConnectDB" @connect-monitor="onConnectMonitor" @new-local-terminal-with-shell="createLocalTerminalWithShell" />
       <div class="tab-area">
         <template v-if="activeTab">
           <KeepAlive>
@@ -68,7 +68,7 @@
           </KeepAlive>
         </template>
       </div>
-      <AISidebar />
+      <AISidebar ref="aiSidebarRef" />
     </div>
     <ConnectionForm v-model="showConnectionForm" @save="onSaveOnly" @connect="onConnect" />
     <SerialConnectDialog v-model="showSerialDialog" @connect="onConnectSerial" />
@@ -112,8 +112,11 @@ import { useTabStore } from './stores/tabStore'
 import { usePanelStore } from './stores/panelStore'
 import { useSessionStore } from './stores/sessionStore'
 import { useAIStore } from './stores/aiStore'
+import { useSettingsStore } from './stores/settingsStore'
 import { useQuickCommandStore } from './stores/quickCommandStore'
 import { useUpdateCheck } from './composables/useUpdateCheck'
+import { loadKeybindings, installGlobalListener, uninstallGlobalListener } from './composables/useKeyboardShortcuts'
+import type { ShortcutAction } from '../types/settings'
 import { useI18n } from './i18n'
 import { CreateSession, CloseSession, RDPHide, RDPShow, RDPSetPosition, RDPSetFocus } from '../wailsjs/go/main/App'
 import { EventsOn } from '../wailsjs/runtime'
@@ -126,6 +129,7 @@ const activeTab = computed(() => tabStore.activeTab)
 const panelStore = usePanelStore()
 const sessionStore = useSessionStore()
 const aiStore = useAIStore()
+const settingsStore = useSettingsStore()
 const updateCheck = useUpdateCheck()
 const { t } = useI18n()
 // ── RDP position sync ──
@@ -197,6 +201,9 @@ function RDPShowForOverlay() {
 const showConnectionForm = ref(false)
 const showSerialDialog = ref(false)
 const sidebarVisible = ref(localStorage.getItem('sidebarVisible') !== 'false')
+const sidebarRef = ref<any>(null)
+const aiSidebarRef = ref<any>(null)
+
 
 // Input context menu state
 const inputMenuVisible = ref(false)
@@ -291,6 +298,10 @@ onMounted(() => {
   window.addEventListener('global:close-context-menus', closeInputMenu)
   document.addEventListener('click', closeInputMenu)
   document.addEventListener('wheel', onWheel, { passive: false })
+  // Keyboard shortcuts — load once on mount, watch for settings changes
+  applyKeybindings()
+  installGlobalListener()
+
   // RDP blur/focus: notify Go side so it can manage focus on the native RDP window
   window.addEventListener('blur', () => {
     const sid = getActiveRdpSessionId()
@@ -322,7 +333,109 @@ onMounted(() => {
 
 })
 
+function focusPanelTerminal(panelId: string, attempt = 0) {
+  if (attempt > 10) return
+  const el = document.querySelector(`[data-panel-id="${panelId}"] .xterm-helper-textarea`)
+  if (el instanceof HTMLTextAreaElement) {
+    el.focus()
+  } else {
+    setTimeout(() => focusPanelTerminal(panelId, attempt + 1), 100)
+  }
+}
+
+function navigatePanel(dir: number) {
+  const t = tabStore.activeTab
+  if (!t || t.type !== 'workspace') return
+  if (t.panelIds.length <= 1) return
+  const current = t.activePanelId || t.panelIds[0]
+  const idx = t.panelIds.indexOf(current)
+  if (idx < 0) return
+  const next = t.panelIds[(idx + dir + t.panelIds.length) % t.panelIds.length]
+  tabStore.setActivePanel(t.id, next)
+}
+
+// ── Keyboard shortcut handlers (module-level so watch can access them) ──
+const actionHandlers: Record<ShortcutAction, () => void> = {
+  nextTab: () => tabStore.nextTab(),
+  prevTab: () => tabStore.prevTab(),
+  newConnection: () => { showConnectionForm.value = true },
+  toggleSidebar: () => {
+    if (sidebarVisible.value) {
+      sidebarVisible.value = false
+      const pid = tabStore.getActivePanelId()
+      if (pid) nextTick(() => focusPanelTerminal(pid))
+    } else {
+      sidebarVisible.value = true
+      nextTick(() => sidebarRef.value?.focusSearch())
+    }
+  },
+  focusTerminal: () => {
+    const pid = tabStore.getActivePanelId()
+    if (pid) focusPanelTerminal(pid)
+  },
+  lockAI: () => {
+    const t = tabStore.activeTab
+    if (!t) return
+    let panelId: string | null = null
+    if (t.type === 'workspace') {
+      panelId = t.activePanelId || t.panelIds[0] || null
+    } else if (t.type === 'terminal') {
+      panelId = t.panelId
+    }
+    if (panelId) onToggleAiLock(panelId)
+  },
+  focusAI: () => {
+    if (aiStore.visible) {
+      aiStore.visible = false
+      const pid = tabStore.getActivePanelId()
+      if (pid) nextTick(() => focusPanelTerminal(pid))
+    } else {
+      aiStore.visible = true
+      nextTick(() => aiSidebarRef.value?.focusInput())
+    }
+  },
+  closePanel: () => {
+    const t = tabStore.activeTab
+    if (!t) return
+    if (t.type === 'workspace' && t.panelIds.length > 1) {
+      const panelId = t.activePanelId || t.panelIds[t.panelIds.length - 1]
+      tabStore.removePanelFromWorkspaceTab(t.id, panelId)
+    } else if (t.type === 'workspace' && t.panelIds.length === 1) {
+      tabStore.removePanelFromWorkspaceTab(t.id, t.panelIds[0])
+    } else {
+      closeTab(t.id)
+    }
+  },
+  navigatePrev: () => navigatePanel(-1),
+  navigateNext: () => navigatePanel(1),
+  duplicateSession: async () => {
+    const pid = tabStore.getActivePanelId()
+    if (!pid) return
+    const panel = panelStore.getPanel(pid)
+    if (!panel?.config) return
+    const newPanel = panelStore.createPanel(
+      { ...panel.config } as ConnectionConfig,
+      panel.type
+    )
+    newPanel.title = panel.title
+    try {
+      const info = await CreateSession(panel.config.type, panel.config)
+      panelStore.bindSession(newPanel.id, info.id)
+      const newTab = tabStore.createTerminalTab(panel.title, newPanel.id)
+      panelStore.movePanelToTab(newPanel.id, newTab.id)
+    } catch (e) {
+      console.error('Failed to duplicate session:', e)
+    }
+  },
+  openSettings: () => openSettings(),
+}
+
+function applyKeybindings() {
+  loadKeybindings(settingsStore.settings.keyboard, actionHandlers)
+}
+
 onUnmounted(() => {
+  uninstallGlobalListener()
   window.removeEventListener('input:contextmenu', onInputContextMenu)
   window.removeEventListener('global:close-context-menus', closeInputMenu)
   document.removeEventListener('click', closeInputMenu)
@@ -678,6 +791,11 @@ watch(() => activeTab.value, (newTab, oldTab) => {
     const sid = panelStore.getPanel(newTab.panelId)?.sessionId
     if (sid) nextTick(() => RDPShow(sid))
   }
+  // Auto-focus terminal on tab switch (including new connections)
+  if (newTab) {
+    const pid = tabStore.getActivePanelId()
+    if (pid) nextTick(() => focusPanelTerminal(pid))
+  }
 })
 
 // Hide RDP when new-connection dialog opens (App.vue's ConnectionForm)
@@ -696,6 +814,10 @@ watch(() => aiStore.visible, () => {
   RDPHideForOverlay()
   nextTick(() => RDPShowForOverlay())
 })
+
+watch(() => settingsStore.settings.keyboard, () => {
+  applyKeybindings()
+}, { deep: true })
 </script>
 
 <style scoped>

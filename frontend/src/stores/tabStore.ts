@@ -214,6 +214,28 @@ export const useTabStore = defineStore('tab', () => {
     tabState.activeTabId = id
   }
 
+  function nextTab() {
+    const idx = tabState.tabs.findIndex(t => t.id === tabState.activeTabId)
+    if (idx < 0) return
+    const next = tabState.tabs[(idx + 1) % tabState.tabs.length]
+    tabState.activeTabId = next.id
+  }
+
+  function prevTab() {
+    const idx = tabState.tabs.findIndex(t => t.id === tabState.activeTabId)
+    if (idx < 0) return
+    const next = tabState.tabs[(idx - 1 + tabState.tabs.length) % tabState.tabs.length]
+    tabState.activeTabId = next.id
+  }
+
+  function getActivePanelId(): string | null {
+    const t = tabState.tabs.find(t => t.id === tabState.activeTabId)
+    if (!t) return null
+    if (t.type === 'workspace') return t.activePanelId || t.panelIds[0] || null
+    if ('panelId' in t) return (t as any).panelId as string
+    return null
+  }
+
   function moveTab(fromIdx: number, toIdx: number) {
     const [t] = tabState.tabs.splice(fromIdx, 1)
     tabState.tabs.splice(toIdx, 0, t)
@@ -505,6 +527,9 @@ export const useTabStore = defineStore('tab', () => {
     createWorkspaceTab,
     closeTab,
     setActiveTab,
+    nextTab,
+    prevTab,
+    getActivePanelId,
     moveTab,
     renameTab,
     setActivePanel,

@@ -1,5 +1,6 @@
 <template>
   <div
+    :data-panel-id="panel.id"
     class="panel"
     :class="{ 'panel-active': isActive }"
     draggable="true"
