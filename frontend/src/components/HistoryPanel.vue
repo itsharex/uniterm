@@ -109,10 +109,10 @@ function showTooltip(e: MouseEvent, text: string) {
 function hideTooltip() {
   tooltipVisible.value = false
 }
-const entries = ref<HistoryEntry[]>([])
+const entries = suggestions.historyEntries
 
 onMounted(async () => {
-  entries.value = await suggestions.loadHistory()
+  await suggestions.loadHistory()
   document.addEventListener('click', closeMenu)
 })
 
@@ -229,7 +229,6 @@ function saveAsQuickCommand(entry: HistoryEntry) {
 
 function deleteEntries(ids: string[]) {
   suggestions.removeHistoryCommandsById(ids)
-  entries.value = entries.value.filter(e => !ids.includes(e.id))
   selectedIds.value = new Set()
 }
 

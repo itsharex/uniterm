@@ -242,6 +242,7 @@
 
     <template v-if="activeView === 'personalization'">
       <div class="personalization-panel">
+        <div class="persist-section-title">{{ t('settings.terminal') }}</div>
         <div class="persist-section">
           <div class="persist-label">{{ t('settings.colorScheme') }}</div>
           <el-select v-model="settingsStore.settings.terminal.theme" @change="settingsStore.save()" popper-class="theme-select-popper">
@@ -1637,6 +1638,15 @@ defineExpose({ focusSearch })
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.persist-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-ui);
+  color: var(--text-secondary);
+  padding: 0 0 4px 0;
+  margin-bottom: -4px;
 }
 
 .persist-section {

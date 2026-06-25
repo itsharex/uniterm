@@ -39,6 +39,12 @@ const MAX_COMMAND_LENGTH = 200
 
 const historyCache = new Map<string, HistoryEntry>() // key = command
 let historyLoaded = false
+const historyEntries = ref<HistoryEntry[]>([])
+
+function syncHistoryEntries() {
+  // Reverse: newest first
+  historyEntries.value = Array.from(historyCache.values()).reverse()
+}
 
 export function useSuggestions() {
   const state = ref<SuggestionsState>({
@@ -57,13 +63,15 @@ export function useSuggestions() {
 
   async function loadHistory(): Promise<HistoryEntry[]> {
     if (historyLoaded) {
-      return Array.from(historyCache.values())
+      syncHistoryEntries()
+      return historyEntries.value
     }
     try {
       const entries = await LoadTerminalHistory()
       entries.forEach((entry: HistoryEntry) => historyCache.set(entry.command, entry))
       historyLoaded = true
-      return Array.from(historyCache.values())
+      syncHistoryEntries()
+      return historyEntries.value
     } catch {
       return []
     }
@@ -105,10 +113,12 @@ export function useSuggestions() {
       historyCache.delete(command)
     }
     historyCache.set(command, { id: generateUUID(), command })
+    syncHistoryEntries()
     if (historyCache.size > MAX_HISTORY) {
       const firstKey = historyCache.keys().next().value
       if (firstKey !== undefined) {
         historyCache.delete(firstKey)
+        syncHistoryEntries()
       }
     }
     // Debounce save to avoid blocking on every Enter (Go does JSON marshal + file write)
@@ -131,6 +141,7 @@ export function useSuggestions() {
     }
     if (commandToDelete === undefined) return
     historyCache.delete(commandToDelete)
+    syncHistoryEntries()
     // Also remove from current visible items if present
     state.value.items = state.value.items.filter(item => {
       if (item.type !== 'history') return true
@@ -161,6 +172,7 @@ export function useSuggestions() {
         historyCache.delete(cmd)
       }
     }
+    syncHistoryEntries()
     // Also remove from current visible items if present
     state.value.items = state.value.items.filter(item => {
       if (item.type !== 'history') return true
@@ -410,6 +422,7 @@ export function useSuggestions() {
 
   return {
     state,
+    historyEntries,
     loadHistory,
     addHistoryCommand,
     removeHistoryCommandById,
