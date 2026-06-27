@@ -46,6 +46,7 @@
                 :session-id="sessionId"
                 :table-name="selectedTable"
                 :db-name="selectedDb"
+                :db-type="props.dbType || 'mysql'"
                 :primary-keys="primaryKeys"
                 :table-columns="tableColumns"
               />

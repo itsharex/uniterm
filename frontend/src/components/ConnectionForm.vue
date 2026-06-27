@@ -56,6 +56,7 @@
             <el-radio-button label="mysql">MySQL</el-radio-button>
             <el-radio-button label="postgres">PostgreSQL</el-radio-button>
             <el-radio-button label="rqlite">rqlite</el-radio-button>
+            <el-radio-button label="oracle">Oracle Database</el-radio-button>
           </el-radio-group>
         </template>
       </el-form-item>
@@ -430,6 +431,7 @@ watch(() => form.dbType, (newType) => {
   if (newType === 'mysql') form.port = 3306
   else if (newType === 'postgres') form.port = 5432
   else if (newType === 'rqlite') form.port = 4001
+  else if (newType === 'oracle') form.port = 1521
 })
 
 // Sync resolution picker to form fields
