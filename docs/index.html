@@ -54,8 +54,27 @@
   --accent-glow: rgba(88, 166, 255, 0.25);
   --accent-hover: #79c0ff;
   --border: #30363d;
+  --overlay: rgba(255, 255, 255, 0.03);
+  --logo-bg: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  --logo-border: rgba(255, 255, 255, 0.08);
+  --shadow: rgba(0, 0, 0, 0.3);
   --radius: 8px;
   --max-width: 960px;
+}
+
+html[data-theme="light"] {
+  --bg: #f6f8fa;
+  --bg-card: #ffffff;
+  --text: #1f2328;
+  --text-muted: #59636e;
+  --accent: #0969da;
+  --accent-glow: rgba(9, 105, 218, 0.15);
+  --accent-hover: #0860ca;
+  --border: #d0d7de;
+  --overlay: rgba(9, 105, 218, 0.05);
+  --logo-bg: linear-gradient(135deg, rgba(9,105,218,0.06), rgba(9,105,218,0.02));
+  --logo-border: rgba(9, 105, 218, 0.14);
+  --shadow: rgba(31, 35, 40, 0.12);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -79,6 +98,7 @@ body::before {
   background-size: 256px 256px;
   pointer-events: none;
 }
+html[data-theme="light"] body::before { opacity: 0.18; }
 
 /* ── Lang toggle ── */
 .lang-bar {
@@ -107,6 +127,30 @@ body::before {
 .lang-btn.active {
   background: var(--accent);
   color: #fff;
+}
+.theme-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  color: var(--text-muted);
+  background: transparent;
+  transition: all .2s;
+}
+.theme-btn:hover { color: var(--text); background: var(--overlay); }
+.theme-btn svg { width: 15px; height: 15px; }
+.theme-btn .icon-moon { display: none; }
+html[data-theme="light"] .theme-btn .icon-sun { display: none; }
+html[data-theme="light"] .theme-btn .icon-moon { display: inline; }
+.bar-divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 3px 2px;
+  background: var(--border);
 }
 
 .content-zh, .content-en { display: none; }
@@ -151,8 +195,8 @@ html[lang="zh-CN"] .content-inline-zh, html[lang="en"] .content-inline-en { disp
   width: 160px;
   height: 160px;
   border-radius: 32px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--logo-bg);
+  border: 1px solid var(--logo-border);
   box-shadow:
     0 0 80px var(--accent-glow),
     0 0 40px rgba(88, 166, 255, 0.12),
@@ -233,7 +277,7 @@ html[lang="zh-CN"] .content-inline-zh, html[lang="en"] .content-inline-en { disp
 }
 .btn-outline:hover {
   border-color: var(--text-muted);
-  background: rgba(255,255,255,0.03);
+  background: var(--overlay);
 }
 
 /* ── Sections ── */
@@ -311,7 +355,7 @@ html[lang="zh-CN"] .content-inline-zh, html[lang="en"] .content-inline-en { disp
 }
 .feature-card:hover {
   border-color: rgba(88, 166, 255, 0.3);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 30px var(--shadow);
   transform: translateY(-2px);
 }
 .feature-card .icon {
@@ -341,7 +385,7 @@ html[lang="zh-CN"] .content-inline-zh, html[lang="en"] .content-inline-en { disp
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--bg-card);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 24px var(--shadow);
 }
 .screenshots-track {
   display: flex;
@@ -438,7 +482,7 @@ html[lang="zh-CN"] .content-inline-zh, html[lang="en"] .content-inline-en { disp
 }
 .install-card:hover {
   border-color: rgba(88, 166, 255, 0.3);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 30px var(--shadow);
   transform: translateY(-2px);
 }
 .install-card .os-icon {
@@ -508,6 +552,15 @@ html[lang="zh-CN"] .content-inline-zh, html[lang="en"] .content-inline-en { disp
 }
 </style>
 <script>
+/* Apply saved/system theme before paint to avoid a flash */
+(function() {
+  var t;
+  try { t = localStorage.getItem('uniterm-theme'); } catch(e) {}
+  if (!t) t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<script>
 var _hmt = _hmt || [];
 (function() {
   var hm = document.createElement("script");
@@ -521,6 +574,11 @@ var _hmt = _hmt || [];
 
 <!-- Language toggle -->
 <div class="lang-bar">
+  <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+  </button>
+  <span class="bar-divider"></span>
   <button class="lang-btn active" onclick="setLang('zh-CN')">中文</button>
   <button class="lang-btn" onclick="setLang('en')">EN</button>
 </div>
@@ -809,6 +867,16 @@ function setLang(lang) {
   try { saved = localStorage.getItem('uniterm-lang') || saved; } catch(e) {}
   setLang(saved);
 })();
+
+/* ── Theme toggle ── */
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  try { localStorage.setItem('uniterm-theme', theme); } catch(e) {}
+}
+function toggleTheme() {
+  var cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  setTheme(cur === 'light' ? 'dark' : 'light');
+}
 
 /* ── Screenshot carousel ── */
 (function() {
