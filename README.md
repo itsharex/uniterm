@@ -1,20 +1,18 @@
 <div align="center">
   <img src="build/appicon.png" alt="uniTerm" width="128" height="128" />
   <h1>uniTerm</h1>
-  <p>A modern cross-platform terminal emulator with a built-in autonomous AI Agent — capable of independently planning and executing multi-turn shell commands, like Claude Code for your terminal.</p>
-  <p><a href="https://uniterm.net">🌐 Homepage</a> &nbsp;|&nbsp; <a href="https://github.com/ys-ll/uniterm">💻 GitHub</a></p>
+  <p>A lightweight all-in-one terminal with 20+ protocols — SSH, RDP, SFTP, databases and more<br>With a built-in autonomous AI Agent that plans and runs multi-turn shell commands</p>
+  <p><a href="https://uniterm.net">🌐 Homepage</a> &nbsp;|&nbsp; <a href="https://github.com/ys-ll/uniterm">💻 GitHub</a> &nbsp;|&nbsp; <a href="https://gitee.com/ys-l/uniterm">💻 Gitee</a></p>
 </div>
 
 [简体中文](README_zh-CN.md)
 
-[![GitHub release](https://img.shields.io/github/v/release/ys-ll/uniterm)](https://github.com/ys-ll/uniterm/releases)
-[![GitHub release date](https://img.shields.io/github/release-date/ys-ll/uniterm)](https://github.com/ys-ll/uniterm/releases/latest)
-[![GitHub downloads](https://img.shields.io/github/downloads/ys-ll/uniterm/total)](https://github.com/ys-ll/uniterm/releases)
-[![GitHub latest release downloads](https://img.shields.io/github/downloads/ys-ll/uniterm/latest/total)](https://github.com/ys-ll/uniterm/releases/latest)
+[![GitHub release](https://img.shields.io/github/v/release/ys-ll/uniterm)](https://github.com/ys-ll/uniterm/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/ys-ll/uniterm)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
 [![Commit activity](https://img.shields.io/github/commit-activity/t/ys-ll/uniterm)](https://github.com/ys-ll/uniterm/commits)
-[![GitHub stars](https://img.shields.io/github/stars/ys-ll/uniterm)](https://github.com/ys-ll/uniterm)
+[![GitHub stars](https://img.shields.io/github/stars/ys-ll/uniterm?style=social)](https://github.com/ys-ll/uniterm)
+[![Gitee stars](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgitee.com%2Fapi%2Fv5%2Frepos%2Fys-l%2Funiterm&query=%24.stargazers_count&label=Stars&style=social&logo=gitee)](https://gitee.com/ys-l/uniterm)
 
 ## Table of Contents
 
@@ -102,7 +100,7 @@ Connection management, workspace splits, cloud sync, themes — your terminal, y
 
 ## Download
 
-Get the latest pre-built binaries from [GitHub Releases](https://github.com/ys-ll/uniterm/releases):
+Get the latest pre-built binaries from [GitHub Releases](https://github.com/ys-ll/uniterm/releases) or [Gitee Releases](https://gitee.com/ys-l/uniterm/releases):
 
 - **Windows**: installer `uniterm-windows-amd64-installer-*.exe`, or portable `uniterm-windows-amd64-portable-*.zip`
 - **macOS**: Download `uniterm-darwin-universal-*.dmg`
@@ -182,13 +180,8 @@ uniTerm/
 
 If uniTerm is helpful to you, please consider giving it a ⭐ Star — it's the best encouragement for the project and helps more people discover it.
 
-<a href="https://star-history.com/#ys-ll/uniterm&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=ys-ll/uniterm&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=ys-ll/uniterm&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=ys-ll/uniterm&type=Date" />
-  </picture>
-</a>
+[![GitHub stars](https://img.shields.io/github/stars/ys-ll/uniterm?style=social)](https://github.com/ys-ll/uniterm)
+[![Gitee stars](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgitee.com%2Fapi%2Fv5%2Frepos%2Fys-l%2Funiterm&query=%24.stargazers_count&label=Stars&style=social&logo=gitee)](https://gitee.com/ys-l/uniterm)
 
 ## Feedback &amp; Contributing
 

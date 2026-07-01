@@ -1,20 +1,18 @@
 <div align="center">
   <img src="build/appicon.png" alt="uniTerm" width="128" height="128" />
   <h1>uniTerm</h1>
-  <p>一款现代化跨平台终端模拟器，内置可自主执行的 AI Agent —— 能够像 Claude Code 一样独立规划并执行多轮 Shell 命令。</p>
-  <p><a href="https://uniterm.net">🌐 软件首页</a> &nbsp;|&nbsp; <a href="https://github.com/ys-ll/uniterm">💻 GitHub</a></p>
+  <p>一款轻量级一站式终端软件，支持 SSH、RDP、VNC、SFTP、数据库 等 20 余种协议<br>内置可自主执行的 AI Agent，规划并执行多轮 Shell 命令</p>
+  <p><a href="https://uniterm.net">🌐 软件首页</a> &nbsp;|&nbsp; <a href="https://github.com/ys-ll/uniterm">💻 GitHub</a> &nbsp;|&nbsp; <a href="https://gitee.com/ys-l/uniterm">💻 Gitee</a></p>
 </div>
 
 [English](README.md)
 
-[![GitHub release](https://img.shields.io/github/v/release/ys-ll/uniterm)](https://github.com/ys-ll/uniterm/releases)
-[![GitHub release date](https://img.shields.io/github/release-date/ys-ll/uniterm)](https://github.com/ys-ll/uniterm/releases/latest)
-[![GitHub downloads](https://img.shields.io/github/downloads/ys-ll/uniterm/total)](https://github.com/ys-ll/uniterm/releases)
-[![GitHub latest release downloads](https://img.shields.io/github/downloads/ys-ll/uniterm/latest/total)](https://github.com/ys-ll/uniterm/releases/latest)
+[![GitHub release](https://img.shields.io/github/v/release/ys-ll/uniterm)](https://github.com/ys-ll/uniterm/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/ys-ll/uniterm)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
 [![Commit activity](https://img.shields.io/github/commit-activity/t/ys-ll/uniterm)](https://github.com/ys-ll/uniterm/commits)
-[![GitHub stars](https://img.shields.io/github/stars/ys-ll/uniterm)](https://github.com/ys-ll/uniterm)
+[![GitHub stars](https://img.shields.io/github/stars/ys-ll/uniterm?style=social)](https://github.com/ys-ll/uniterm)
+[![Gitee stars](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgitee.com%2Fapi%2Fv5%2Frepos%2Fys-l%2Funiterm&query=%24.stargazers_count&label=Stars&style=social&logo=gitee)](https://gitee.com/ys-l/uniterm)
 
 ## 目录
 
@@ -102,7 +100,7 @@ Oracle Database 支持基于纯 Go 驱动实现。uniTerm 不随安装包分发 
 
 ## 下载安装
 
-前往 [GitHub Releases](https://github.com/ys-ll/uniterm/releases) 下载最新版本：
+前往 [GitHub Releases](https://github.com/ys-ll/uniterm/releases) 或 [Gitee Releases](https://gitee.com/ys-l/uniterm/releases) 下载最新版本：
 
 - **Windows**: 安装包 `uniterm-windows-amd64-installer-*.exe`，或便携版 `uniterm-windows-amd64-portable-*.zip`
 - **macOS**: 下载 `uniterm-darwin-universal-*.dmg`
@@ -182,13 +180,8 @@ uniTerm/
 
 如果 uniTerm 对你有帮助，欢迎点一个 ⭐ Star，这是对项目最大的鼓励，也能让更多人发现它。
 
-<a href="https://star-history.com/#ys-ll/uniterm&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=ys-ll/uniterm&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=ys-ll/uniterm&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=ys-ll/uniterm&type=Date" />
-  </picture>
-</a>
+[![GitHub stars](https://img.shields.io/github/stars/ys-ll/uniterm?style=social)](https://github.com/ys-ll/uniterm)
+[![Gitee stars](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgitee.com%2Fapi%2Fv5%2Frepos%2Fys-l%2Funiterm&query=%24.stargazers_count&label=Stars&style=social&logo=gitee)](https://gitee.com/ys-l/uniterm)
 
 ## 反馈与贡献
 
