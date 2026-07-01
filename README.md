@@ -17,6 +17,7 @@
 ## Table of Contents
 
 - [Features](#features)
+- [Supported Protocols](#supported-protocols)
 - [Screenshots](#screenshots)
 - [Download](#download)
 - [Quick Workflows](#quick-workflows)
@@ -29,9 +30,20 @@
 
 ## Features
 
+### Full-Featured Terminal
+
+Remote terminal (SSH / Telnet / Mosh), local & serial terminal (PowerShell / CMD / Git Bash / WSL), file transfer, remote desktop, database, and server monitor — covering all remote access needs.
+
+- **Remote Terminal** — SSH / Telnet / Mosh with password or key authentication; includes SSH tunnel port forwarding so any connection can route through an SSH jump host.
+- **Local & Serial Terminal** — PowerShell / CMD / Git Bash / WSL plus serial connections with configurable baud rate, data bits, stop bits, parity, and local echo.
+- **File Transfer** — SFTP / FTP / FTPS / Zmodem with dual-pane browsing and `rz`/`sz` support in SSH terminals.
+- **Remote Desktop** — RDP (Windows Remote Desktop), VNC (Linux remote control), SPICE (KVM/QEMU VMs)
+- **Database Client** — MySQL / PostgreSQL / Oracle / SQL Server / rqlite / Redis.
+- **Server Monitor** — Real-time CPU, memory, disk, network, processes, ports, and network interfaces.
+
 ### AI Assistant
 
-Autonomous AI Agent that works like Claude Code — independently plans and executes multi-turn shell commands directly in your terminal.
+Autonomous AI Agent that independently plans and executes multi-turn shell commands directly in your terminal.
 
 - **Autonomous Multi-Turn Execution** — The AI Agent can plan, execute, observe results, and iterate across multiple rounds of shell commands without manual intervention.
 - **LLM Integration** — Sidebar chat with Anthropic/OpenAI-compatible API, supporting Claude, GPT and other compliant models.
@@ -40,18 +52,18 @@ Autonomous AI Agent that works like Claude Code — independently plans and exec
 - **Terminal Integration** — AI commands execute directly in the active terminal tab, with optional pinning to a specific tab or following your active one. Collaborate side-by-side in split panes, each with its own terminal context.
 - **Smart Completion** — While typing in SSH terminals, get real-time suggestions from your command history and AI-powered command rewrites.
 
-### Full-Featured Terminal
+### Personalization
 
-Local terminal, SSH / Telnet / Mosh, file transfer (SFTP / FTP), RDP / VNC / SPICE, database, SSH tunnel, server monitor — covering all remote access needs.
+Connection management, split panes, cloud sync, themes — your terminal, your way.
 
-- **Remote Terminal** — Supports SSH / Telnet / Mosh. Connect via password or private key authentication; SSH for general remote access, Telnet for legacy/embedded devices, and Mosh for high-latency mobile networks.
-- **Local Terminal** — Supports PowerShell / CMD / Git Bash / WSL. Local shells share the same font, color, and behavior settings as SSH sessions.
-- **Serial Terminal** — Scan available serial ports and connect with configurable baud rate, data bits, stop bits, and parity. Supports local echo and CR→CRLF normalization.
-- **File Transfer** — Supports SFTP / FTP / FTPS / Zmodem. Dual-pane browser for local and remote files; Zmodem (`rz`/`sz`) supported in SSH terminals.
-- **Remote Desktop** — Supports RDP / VNC / SPICE. Connect to Windows Remote Desktop, VNC, and SPICE.
-- **Database Client** — Connect to MySQL, PostgreSQL, Oracle Database, SQL Server, and rqlite databases. Execute SQL queries, browse table structures, and edit data rows inline; also supports Redis key-value browsing and editing — all from a unified interface.
-- **SSH Tunnel** — Port forwarding. Any connection can use an existing SSH connection as a jump host. Auto-assigns local port, tunnels TCP through SSH to the target. Supports all TCP protocol connection types.
-- **Server Monitor** — Real-time monitoring for connected servers. View performance metrics (CPU, memory, disk, network), process list with detail panel, listening ports, disk usage with mountpoint info, and network interfaces with bond/bridge detection.
+- **Connection Manager** — Group, quickly search, create, and batch-operate server connections.
+- **Split Panes** — Drag terminal tabs into the content area to split freely and combine them into a workspace; drag panel edges to resize and rearrange.
+- **Cloud Sync** — Encrypt and auto-sync settings via your own decentralized private repo on GitHub, GitLab, or Gitee — no worry about data loss or leaks, and pick up your work seamlessly across devices.
+- **Custom Keybindings** — Freely bind keyboard shortcuts for every action for full keyboard-driven operation, hands never leaving the keyboard.
+- **Themes** — 28 terminal themes plus 3 UI themes (Dark / Deep Blue / Light).
+- **Internationalization** — 9-language UI: Simplified Chinese, Traditional Chinese, English, Japanese, Korean, German, Spanish, French, Russian.
+
+## Supported Protocols
 
 | Category | Protocol | Description |
 |----------|----------|-------------|
@@ -73,20 +85,8 @@ Local terminal, SSH / Telnet / Mosh, file transfer (SFTP / FTP), RDP / VNC / SPI
 | Database | SQL Server | SQL Server connections through a pure Go driver |
 | Database | rqlite | Lightweight distributed DB built on SQLite with Raft consensus |
 | Database | Redis | In-memory key-value store with visual key browsing and editing |
-| Monitoring | Monitor | SSH-based real-time CPU, memory, disk monitoring |
 
 Oracle Database support is implemented with a pure Go driver. uniTerm does not bundle Oracle Database, Oracle Instant Client, OJDBC, wallet files, or Oracle brand assets; users are responsible for their own Oracle licenses, credentials, and database access.
-
-### Customization
-
-Connection management, workspace splits, cloud sync, themes — your terminal, your way.
-
-- **Connection Manager** — Save, search, edit, group, and duplicate server connections. Drag-and-drop organization, multi-select or range-select for batch connect, batch delete, and more.
-- **Workspace & Split Panes** — Merge terminal tabs into a workspace with horizontal or vertical splits. Drag panel edges or title bars to resize and rearrange freely.
-- **Cloud Sync** — Build your own private sync repository via GitHub, GitLab, or Gitee. All configurations (connections, AI model keys, app settings) are encrypted with AES-256-GCM before syncing. Supports automatic sync, conflict resolution, master password changes, and repository management.
-- **Themes** — Dark, Deep Blue, and Light themes with automatic system theme detection.
-- **Internationalization** — 9-language UI: zh-CN, zh-TW, en, ja, ko, de, es, fr, ru.
-- **Cross-Platform** — Built on Wails v2, runs natively on Windows, macOS, and Linux.
 
 ## Screenshots
 
