@@ -1,4 +1,11 @@
 {
+  "settings.autoCompact": "Automatically compact context",
+  "settings.autoCompactDesc": "Summarize older messages when the budget is reached. When off, send full history; requests may fail if the model's context limit is exceeded.",
+  "settings.contextTokenBudget": "Compaction trigger budget (tokens)",
+  "settings.contextTokenBudgetDesc": "Compact when the estimated total of system prompt, conversation and tools reaches this value. Default: 32,000. Leave room for model output.",
+  "settings.summaryModel": "Summary model",
+  "settings.summaryModelDesc": "Use a separately configured model for context summaries. Falls back to the current chat model if the selected model is deleted.",
+  "settings.summaryModelCurrent": "Use current chat model",
   "remoteDesktop.customRegions": "Custom regions",
   "remoteDesktop.createRegion": "Create custom region…",
   "remoteDesktop.regionNumber": "Region {n}",

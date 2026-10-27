@@ -145,6 +145,9 @@ export const USER_AGENT_PRESETS: { label: string; value: string }[] = [
 
 export interface AISettings {
   maxTurns: number
+  autoCompact?: boolean
+  contextTokenBudget?: number
+  summaryModelId?: string
   models: AIModelConfig[]
 }
 
@@ -401,6 +404,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
   ai: {
     maxTurns: 20,
+    autoCompact: true,
+    contextTokenBudget: 32000,
+    summaryModelId: '',
     models: [
       {
         id: 'model-default',

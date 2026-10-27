@@ -1211,6 +1211,39 @@
         <div class="settings-group">
           <div class="setting-card">
             <div class="setting-info">
+              <div class="setting-title">{{ t('settings.autoCompact') }}</div>
+              <div class="setting-desc">{{ t('settings.autoCompactDesc') }}</div>
+            </div>
+            <div class="setting-control">
+              <el-switch v-model="settingsStore.settings.ai.autoCompact" @change="settingsStore.save()" />
+            </div>
+          </div>
+          <div class="setting-card">
+            <div class="setting-info">
+              <div class="setting-title">{{ t('settings.contextTokenBudget') }}</div>
+              <div class="setting-desc">{{ t('settings.contextTokenBudgetDesc') }}</div>
+            </div>
+            <div class="setting-control">
+              <el-input-number v-model="settingsStore.settings.ai.contextTokenBudget"
+                :min="16000" :max="2000000" :step="1000" :precision="0" controls-position="right"
+                :disabled="settingsStore.settings.ai.autoCompact === false" @change="settingsStore.save()" />
+            </div>
+          </div>
+          <div class="setting-card">
+            <div class="setting-info">
+              <div class="setting-title">{{ t('settings.summaryModel') }}</div>
+              <div class="setting-desc">{{ t('settings.summaryModelDesc') }}</div>
+            </div>
+            <div class="setting-control">
+              <el-select v-model="settingsStore.settings.ai.summaryModelId" style="width: 14rem"
+                :disabled="settingsStore.settings.ai.autoCompact === false" @change="settingsStore.save()">
+                <el-option :label="t('settings.summaryModelCurrent')" value="" />
+                <el-option v-for="model in settingsStore.settings.ai.models" :key="model.id" :label="model.name" :value="model.id" />
+              </el-select>
+            </div>
+          </div>
+          <div class="setting-card">
+            <div class="setting-info">
               <div class="setting-title">{{ t('settings.maxTurns') }}</div>
               <div class="setting-desc">{{ t('settings.maxTurnsDesc') }}</div>
             </div>
