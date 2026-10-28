@@ -1246,7 +1246,11 @@ func (a *App) SendKey(sessionID, text, control string, sendEnter bool) error {
 	var data string
 	switch control {
 	case "ctrl_c":
-		data = "\x03"
+		// Built-in AI and MCP send-key calls share this path. Sending ETX
+		// alone cannot finish jobs on CLIs without a shell completion marker.
+		return a.jobRegistry().InterruptSession(sessionID, func() error {
+			return s.Write([]byte{3})
+		})
 	case "ctrl_d":
 		data = "\x04"
 	case "enter":
