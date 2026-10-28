@@ -96,7 +96,7 @@ func (a *App) StartMCP() error {
 	if cfg.Port > 0 {
 		port = cfg.Port
 	}
-	return srv.Start(port)
+	return srv.Start(port, cfg.AllowRemote)
 }
 
 // MCPStatus_ reports endpoint state to the settings UI.

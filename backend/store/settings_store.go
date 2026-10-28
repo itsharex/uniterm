@@ -145,9 +145,13 @@ type AISettings struct {
 // and side effects are governed by the approval policy alone; the stale
 // field is ignored on load.
 type MCPSettings struct {
-	// Enabled starts the localhost Streamable HTTP endpoint on launch.
+	// Enabled starts the Streamable HTTP endpoint on launch.
 	Enabled bool `json:"enabled"`
-	// Port for the 127.0.0.1 listener; 0 = DefaultPort.
+	// AllowRemote opts into listening on all IPv4 interfaces and accepting
+	// non-local Host headers, including requests forwarded over SSH.
+	// Defaults to false so existing installations stay loopback-only.
+	AllowRemote bool `json:"allowRemote,omitempty"`
+	// Port for the HTTP listener; 0 = DefaultPort.
 	Port int `json:"port,omitempty"`
 	// Policy is the approval policy: confirm_write (default) / confirm_all /
 	// confirm_dangerous / bypass. Unknown or empty values fall back to

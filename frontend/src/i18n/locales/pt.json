@@ -1898,7 +1898,7 @@
   "settings.mcpSection": "uniTerm MCP",
   "settings.mcpSectionDesc": "Permite que agentes de IA externos executem comandos em hosts gerenciados pelo uniTerm via MCP. As credenciais ficam no uniTerm e nunca são compartilhadas com os agentes.",
   "settings.mcpEnabled": "Ativar servidor MCP",
-  "settings.mcpEnabledDesc": "Escuta em 127.0.0.1 para conexões de agentes externos",
+  "settings.mcpEnabledDesc": "Iniciar o endpoint MCP para agentes de IA externos",
   "settings.mcpPort": "Porta de escuta",
   "settings.mcpPolicy": "Política de aprovação de comandos",
   "settings.mcpPolicyDesc": "Se os comandos precisam da sua confirmação no uniTerm antes de o agente executá-los",
@@ -1921,7 +1921,7 @@
   "settings.mcpConnectCmds": "Comandos de conexão dos clientes",
   "settings.mcpConnectCmdsDesc": "Execute na CLI correspondente para conectar ao uniTerm",
   "settings.mcpNotRunning": "Não está em execução",
-  "settings.mcpRunningOn": "Em execução · 127.0.0.1:{port}",
+  "settings.mcpRunningOn": "Em execução · {host}:{port}",
   "mcp.approvalTitle": "Aprovação de comando MCP",
   "mcp.approvalClient": "Cliente solicitante",
   "mcp.approvalConnection": "Conexão de destino",
@@ -2112,5 +2112,9 @@
   "localsrv.s3.hint": "Servidor experimental compatível com S3 sobre um diretório local. Use um cliente S3 sem verificação de assinatura, p. ex. mc --no-sign-request alias set local http://<host>:<port>/ ; mc ls local",
   "localsrv.s3.accessKey": "Access key",
   "localsrv.s3.secretKey": "Secret key",
-  "localsrv.s3.keyPlaceholder": "opcional"
+  "localsrv.s3.keyPlaceholder": "opcional",
+  "settings.mcpAllowRemote": "Permitir acesso remoto",
+  "settings.mcpAllowRemoteDesc": "Escutar em todas as interfaces IPv4 e permitir encaminhamento de portas. Um token continua sendo necessário. HTTP não é criptografado; use uma rede confiável ou um túnel SSH.",
+  "mcp.remoteHost": "Endereço do servidor",
+  "mcp.remoteHostHint": "Informe o IP ou nome deste computador acessível pelo cliente. Para um túnel SSH, use o endereço encaminhado e ajuste a porta na configuração copiada."
 }

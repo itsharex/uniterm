@@ -144,7 +144,7 @@ func newTestServerWithPolicy(t *testing.T, policy Policy) (url, token string) {
 	srv := NewServer(env)
 	token, hash := GenerateToken()
 	srv.SetTokens(map[string]TokenInfo{hash: {Name: "test-agent"}})
-	if err := srv.Start(0); err != nil { // :0 → ephemeral port
+	if err := srv.Start(0, false); err != nil { // :0 → ephemeral port
 		t.Fatal(err)
 	}
 	t.Cleanup(srv.Stop)
@@ -253,7 +253,7 @@ func TestDeniedApprovalBlocksExec(t *testing.T) {
 	srv := NewServer(env)
 	token, hash := GenerateToken()
 	srv.SetTokens(map[string]TokenInfo{hash: {Name: "deny-agent"}})
-	if err := srv.Start(0); err != nil {
+	if err := srv.Start(0, false); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(srv.Stop)
@@ -345,7 +345,7 @@ func TestFileToolsAndLocalPathScope(t *testing.T) {
 	srv := NewServer(env)
 	token, hash := GenerateToken()
 	srv.SetTokens(map[string]TokenInfo{hash: {Name: "file-agent"}})
-	if err := srv.Start(0); err != nil {
+	if err := srv.Start(0, false); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(srv.Stop)

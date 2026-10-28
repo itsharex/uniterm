@@ -1936,7 +1936,7 @@
   "settings.mcpSection": "uniTerm MCP",
   "settings.mcpSectionDesc": "让外部 AI Agent 通过 MCP 在 uniTerm 管理的远程主机上执行命令。凭据始终留在 uniTerm，不会传递给 Agent。",
   "settings.mcpEnabled": "启用 MCP 服务器",
-  "settings.mcpEnabledDesc": "在本机 127.0.0.1 监听 MCP 端点，供外部 Agent 连接",
+  "settings.mcpEnabledDesc": "启动 MCP 端点，供外部 AI Agent 连接",
   "settings.mcpPort": "监听端口",
   "settings.mcpPolicy": "命令审批策略",
   "settings.mcpPolicyDesc": "Agent 执行命令前是否需要你在 uniTerm 中确认",
@@ -1959,7 +1959,7 @@
   "settings.mcpConnectCmds": "客户端接入命令",
   "settings.mcpConnectCmdsDesc": "在对应 CLI 中执行即可接入 uniTerm",
   "settings.mcpNotRunning": "未运行",
-  "settings.mcpRunningOn": "运行中 · 127.0.0.1:{port}",
+  "settings.mcpRunningOn": "运行中 · {host}:{port}",
   "mcp.approvalTitle": "MCP 命令审批",
   "mcp.approvalClient": "请求客户端",
   "mcp.approvalConnection": "目标连接",
@@ -2147,5 +2147,9 @@
   "localsrv.s3.hint": "实验性 S3 兼容服务，基于本地目录。使用不做签名校验的 S3 客户端访问，例如：mc --no-sign-request alias set local http://<host>:<端口>/ ; mc ls local",
   "localsrv.s3.accessKey": "Access key",
   "localsrv.s3.secretKey": "Secret key",
-  "localsrv.s3.keyPlaceholder": "可选"
+  "localsrv.s3.keyPlaceholder": "可选",
+  "settings.mcpAllowRemote": "允许远程访问",
+  "settings.mcpAllowRemoteDesc": "监听所有 IPv4 网络接口，并允许端口转发访问。仍需令牌鉴权。HTTP 不加密，请使用可信网络或 SSH 隧道。",
+  "mcp.remoteHost": "服务器地址",
+  "mcp.remoteHostHint": "填写客户端可访问的本机 IP 地址或主机名。使用 SSH 隧道时，填写转发地址，并在复制的配置中调整端口。"
 }
