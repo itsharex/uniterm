@@ -31,7 +31,7 @@ const markdown = '# 分析结果\n\n```sh\nprintf "你好"\n```'
 
 beforeEach(() => {
   vi.useFakeTimers()
-  setText.mockReset().mockResolvedValue(true)
+  setText.mockReset().mockResolvedValue(undefined)
   writeText.mockReset().mockResolvedValue(undefined)
   showError.mockReset()
   vi.stubGlobal('navigator', { userAgent: 'Macintosh', clipboard: { writeText } })
