@@ -90,9 +90,9 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column :label="t('batch.status')" width="100" align="center">
+        <el-table-column :label="t('batch.status')" width="110" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+            <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column :label="t('batch.duration')" width="100" align="right">
@@ -104,7 +104,7 @@
         <el-table-column :label="t('batch.output')" min-width="200">
           <template #default="{ row }">
             <div class="output-cell">
-              <span class="output-preview">{{ outputPreview(row.output) }}</span>
+              <span class="output-preview">{{ row.preview || t('batch.noOutput') }}</span>
               <el-button
                 v-if="row.output || row.error"
                 link
@@ -145,22 +145,68 @@
     append-to-body
     class="full-output-dialog"
   >
-    <pre class="full-output-pre">{{ fullOutputText }}</pre>
+    <div v-if="fullOutputTruncated" class="truncated-hint">{{ t('batch.outputTruncated') }}</div>
+    <pre ref="fullOutputPreRef" class="full-output-pre" @contextmenu="onCopyContextMenu">{{ fullOutputText }}</pre>
+    <template #footer>
+      <el-button @click="fullOutputVisible = false">{{ t('batch.close') }}</el-button>
+    </template>
   </el-dialog>
+
+  <!-- Right-click copy menu for the log output (same pattern as the
+       container/K8s log panels) -->
+  <Menu ref="copyMenuRef" v-model:visible="copyMenuVisible">
+    <MenuItem @click="onCopyMenu">{{ t('container.copy') }}</MenuItem>
+    <MenuItem @click="onSelectAllMenu">{{ t('batch.selectAll') }}</MenuItem>
+  </Menu>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
+import { Clipboard } from '@wailsio/runtime'
 import { useI18n } from '../i18n'
-import { useBatchStore, type BatchSessionStatus } from '../stores/batchStore'
+import { useBatchStore, stripAnsi, type BatchSession, type BatchSessionStatus } from '../stores/batchStore'
 import { assessLocalRisk } from '../services/localRisk'
 import { executeBatch, exportCsv, exportJson } from '../services/batchExecute'
 import { OpenFileDialogFiltered, ReadFileBase64, SaveFileDialogFiltered, WriteFileBase64 } from '../../bindings/github.com/ys-ll/uniterm/app'
+import Menu from './Menu.vue'
+import MenuItem from './MenuItem.vue'
 import type { ConnectionConfig } from '../types/session'
 
 const { t } = useI18n()
 const batchStore = useBatchStore()
+
+// 任务日志右键复制选中文本（与 ContainerDetailDrawer 的日志面板一致）
+const copyMenuRef = ref<InstanceType<typeof Menu> | null>(null)
+const copyMenuVisible = ref(false)
+const fullOutputPreRef = ref<HTMLPreElement | null>(null)
+
+// Always open the menu on the log box — 全选 needs it even with no selection
+function onCopyContextMenu(e: MouseEvent) {
+  e.preventDefault()
+  e.stopPropagation()
+  copyMenuRef.value?.openAt(e.clientX, e.clientY)
+}
+
+async function onCopyMenu() {
+  const sel = window.getSelection()?.toString() || ''
+  if (sel) {
+    try { await Clipboard.SetText(sel) } catch { try { await navigator.clipboard.writeText(sel) } catch { /* ignore */ } }
+  }
+  copyMenuVisible.value = false
+}
+
+function onSelectAllMenu() {
+  const el = fullOutputPreRef.value
+  const sel = window.getSelection()
+  if (el && sel) {
+    const range = document.createRange()
+    range.selectNodeContents(el)
+    sel.removeAllRanges()
+    sel.addRange(range)
+  }
+  copyMenuVisible.value = false
+}
 
 const props = defineProps<{
   modelValue: boolean
@@ -190,6 +236,7 @@ const onFailure = ref<'continue' | 'stop'>('continue')
 const fullOutputVisible = ref(false)
 const fullOutputHost = ref('')
 const fullOutputText = ref('')
+const fullOutputTruncated = ref(false)
 
 // 批量是否已完成（用于显示汇总）
 const batchCompleted = ref(false)
@@ -357,12 +404,23 @@ function statusTagType(status: BatchSessionStatus): 'info' | 'warning' | 'succes
   }
 }
 
-function statusLabel(status: BatchSessionStatus): string {
-  switch (status) {
+// Status text: failed rows are split into timeout / command exit /
+// connection / cancelled / skipped via failKind.
+function statusLabel(row: BatchSession): string {
+  if (row.status === 'failed') {
+    switch (row.failKind) {
+      case 'timeout': return t('batch.statusTimeout')
+      case 'exit': return t('batch.statusCmdFailed')
+      case 'connection': return t('batch.statusConnFailed')
+      case 'cancelled': return t('batch.statusCancelled')
+      case 'skipped': return t('batch.statusSkipped')
+      default: return t('batch.statusFailed')
+    }
+  }
+  switch (row.status) {
     case 'pending': return t('batch.statusPending')
     case 'running': return t('batch.statusRunning')
     case 'success': return t('batch.statusSuccess')
-    case 'failed': return t('batch.statusFailed')
   }
 }
 
@@ -375,22 +433,15 @@ function formatDuration(ms: number): string {
   return `${m}m${s}s`
 }
 
-// ── 输出预览（截断 + 剥离 ANSI） ──
-function outputPreview(output: string): string {
-  if (!output) return t('batch.noOutput')
-  // 剥离 ANSI 转义
-  const stripped = output.replace(/\x1b\[[0-9;]*[A-Za-z]|\x1b\][^\x07]*\x07|\x1b[()][AB012]|\r/g, '')
-  // 取最后 200 字符（通常命令输出末尾更有意义）
-  const trimmed = stripped.trim()
-  if (trimmed.length <= 200) return trimmed
-  return '...' + trimmed.slice(-200)
-}
-
 // ── 显示完整输出 ──
-function showFullOutput(row: { hostName: string; output: string; error?: string }) {
+function showFullOutput(row: BatchSession) {
   fullOutputHost.value = row.hostName
-  const stripped = row.output.replace(/\x1b\[[0-9;]*[A-Za-z]|\x1b\][^\x07]*\x07|\x1b[()][AB012]|\r/g, '')
-  fullOutputText.value = row.error ? `[${row.error}]\n\n${stripped}` : stripped
+  fullOutputTruncated.value = !!row.truncated
+  // Strip once per open; output is tail-capped in the store so this stays
+  // cheap even for runaway commands. The error goes AFTER the log so the
+  // failure reason reads as the tail of the transcript.
+  const stripped = stripAnsi(row.output)
+  fullOutputText.value = row.error ? `${stripped}\n\n[${row.error}]` : stripped
   fullOutputVisible.value = true
 }
 
@@ -419,6 +470,7 @@ async function onExportJson() {
       endTime: s.endTime,
       output: s.output,
       error: s.error,
+      truncated: s.truncated,
     })),
   )
   await saveFile(json, 'batch-results.json')
@@ -469,7 +521,8 @@ async function saveFile(content: string, defaultName: string) {
   flex-wrap: wrap;
   gap: 6px;
   padding: 8px;
-  background: var(--bg-subtle, #f5f7fa);
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-subtle);
   border-radius: 4px;
   min-height: 40px;
   align-items: center;
@@ -578,6 +631,12 @@ async function saveFile(content: string, defaultName: string) {
   gap: 8px;
 }
 
+.truncated-hint {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--warning);
+}
+
 .full-output-pre {
   max-height: 60vh;
   overflow: auto;
@@ -585,9 +644,14 @@ async function saveFile(content: string, defaultName: string) {
   font-size: 12px;
   white-space: pre-wrap;
   word-break: break-all;
-  background: var(--bg-subtle, #f5f7fa);
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-subtle);
   padding: 12px;
   border-radius: 4px;
   margin: 0;
+  /* Opt back into text selection: the app root disables it globally. */
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
 }
 </style>

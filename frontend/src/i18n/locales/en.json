@@ -2187,5 +2187,12 @@
   "batch.statusPending": "Pending",
   "batch.statusRunning": "Running",
   "batch.statusSuccess": "Success",
-  "batch.statusFailed": "Failed"
+  "batch.statusFailed": "Failed",
+  "batch.statusTimeout": "Timeout",
+  "batch.statusCmdFailed": "Command failed",
+  "batch.statusConnFailed": "Connection failed",
+  "batch.statusCancelled": "Cancelled",
+  "batch.statusSkipped": "Skipped",
+  "batch.outputTruncated": "Output too large — only the last part is kept.",
+  "batch.selectAll": "Select All"
 }

@@ -10,11 +10,11 @@
     <MenuItem v-if="config?.type === 'wsl'" @click="onConnectClick($event, 'wsl-file')">{{ t('sidebar.connectWslFile') }}</MenuItem>
     <MenuItem v-if="config?.type === 'ssh'" @click="onConnectClick($event, 'monitor')">{{ t('sidebar.connectMonitor') }}</MenuItem>
     <MenuItem v-if="config && canLocate" @click="locateSession">{{ t('sidebar.locateSession') }}</MenuItem>
+    <MenuItem v-if="canBatchExecute" @click="onBatchExecute">{{ t('sidebar.batchExecute') }}</MenuItem>
     <MenuDivider />
     <MenuItem :class="{ disabled: targets.length > 1 }" @click="targets.length === 1 && onEditClick()">{{ t('sidebar.edit') }}</MenuItem>
     <MenuItem @click="duplicate()">{{ t('sidebar.duplicate') }}</MenuItem>
     <MenuItem v-if="config" @click="favoriteStore.toggle(config.id)">{{ isFavorite ? t('sidebar.removeFromFavorites') : t('sidebar.addToFavorites') }}</MenuItem>
-    <MenuItem v-if="canBatchExecute" @click="onBatchExecute">{{ t('sidebar.batchExecute') }}</MenuItem>
     <MenuDivider />
     <MenuItem @click="close(); emit('changeGroup', targets)">{{ t('conn.moveTo') }}</MenuItem>
     <MenuItem @click="close(); emit('newGroup')">{{ t('conn.newGroupTitle') }}</MenuItem>

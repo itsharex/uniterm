@@ -18,7 +18,7 @@
 import { CreateSession, CloseSession, SessionStart, SessionWrite } from '../../bindings/github.com/ys-ll/uniterm/app'
 import { Events } from '@wailsio/runtime'
 import type { ConnectionConfig } from '../types/session'
-import { useBatchStore, type BatchConfig } from '../stores/batchStore'
+import { useBatchStore, stripAnsi, type BatchConfig, type BatchFailKind } from '../stores/batchStore'
 
 // ── 信号量：限制并发 SSH session 创建数 ──
 class Semaphore {
@@ -44,13 +44,6 @@ class Semaphore {
   }
 }
 
-// ── 剥离 ANSI 转义序列，用于导出纯文本 ──
-const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]|\x1b\][^\x07]*\x07|\x1b[()][AB012]|\r/g
-
-export function stripAnsi(s: string): string {
-  return s.replace(ANSI_RE, '')
-}
-
 // ── 单主机执行 ──
 // 在命令后追加唯一完成标记，监听输出中是否出现该标记以判断命令结束。
 // 从标记中提取 exit code：`__BATCH_DONE_<id>__N`，N 为 exit code。
@@ -68,6 +61,13 @@ async function executeOnHost(
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null
   let pollHandle: ReturnType<typeof setInterval> | null = null
   let settled = false
+  // Whether the backend has emitted session:status 'connected'. Writes only
+  // reach the remote PTY once the shell channel is up; before that they are
+  // either rejected ("not connected") or swallowed as auth input.
+  let connected = false
+  // Resolver for the in-flight wait-for-connected gate, so cleanup can
+  // release run() if settle happens first.
+  let connectedResolve: (() => void) | null = null
   // F2: 一旦 settle（timeout/cancel/error/完成标记）即置 true。
   //     任何在途 await（CreateSession/SessionStart/SessionWrite）返回后都必须
   //     检查它：若已 disposed，说明本次执行早已结束、无人接管新 session，
@@ -81,10 +81,9 @@ async function executeOnHost(
   // 完成标记的正则：匹配 doneMarker 后跟一个数字（exit code）
   const doneRe = new RegExp(doneMarker + '(\\d+)')
 
-  // 准备 config：批量执行不 deferConnect，立即连接；不需要初始尺寸
+  // 准备 config：批量执行不需要初始尺寸
   const config: ConnectionConfig = {
     ...conn,
-    deferConnect: false,
     initialCols: 0,
     initialRows: 0,
   }
@@ -106,6 +105,12 @@ async function executeOnHost(
     if (pollHandle) clearInterval(pollHandle)
     if (dataUnsub) dataUnsub()
     if (statusUnsub) statusUnsub()
+    // Release a pending wait-for-connected so run() resumes, sees disposed
+    // and exits instead of hanging forever on an already-settled execution.
+    if (connectedResolve) {
+      connectedResolve()
+      connectedResolve = null
+    }
     await closeCurrentSession()
   }
 
@@ -113,19 +118,19 @@ async function executeOnHost(
     // settle 终结本次执行：幂等标记 settled/disposed，释放全部资源
     // （含关闭已创建的 session），并保证只 resolve 一次。disposed 供在途
     // await 返回后做泄漏兜底检查。
-    const settle = async (ok: boolean, error?: string) => {
+    const settle = async (ok: boolean, error?: string, kind?: BatchFailKind) => {
       if (settled) return
       settled = true
       disposed = true
       await cleanup()
-      store.updateSessionStatus(conn.id, ok ? 'success' : 'failed', error)
+      store.updateSessionStatus(conn.id, ok ? 'success' : 'failed', error, kind)
       resolve({ ok, error })
     }
 
     // 超时
     if (timeoutMs > 0) {
       timeoutHandle = setTimeout(() => {
-        settle(false, `Timeout after ${Math.round(timeoutMs / 1000)}s`)
+        settle(false, `Timeout after ${Math.round(timeoutMs / 1000)}s`, 'timeout')
       }, timeoutMs)
     }
 
@@ -136,23 +141,35 @@ async function executeOnHost(
       const chunk: string = payload.data || ''
       if (!chunk) return
       onOutput(chunk)
+      // Keep only a small tail for marker detection: the marker is printed
+      // at the very end, and an unbounded buffer would make every match
+      // scan O(total output).
       outputBuffer += chunk
+      if (outputBuffer.length > 8192) {
+        outputBuffer = outputBuffer.slice(-4096)
+      }
       // 检测完成标记
       const m = outputBuffer.match(doneRe)
       if (m) {
         const exitCode = parseInt(m[1], 10)
         // 给一点缓冲时间让剩余输出到达
-        setTimeout(() => settle(exitCode === 0, exitCode === 0 ? undefined : `Exit code: ${exitCode}`), 100)
+        setTimeout(() => settle(exitCode === 0, exitCode === 0 ? undefined : `Exit code: ${exitCode}`, exitCode === 0 ? undefined : 'exit'), 100)
       }
     })
 
-    // 监听 session:status — 连接失败/断开时结束
+    // 监听 session:status — connected 后才允许写入命令；连接失败/断开时结束
     statusUnsub = Events.On('session:status', (ev: any) => {
       const payload = ev?.data
       if (!payload || payload.id !== sessionId) return
       const status: string = payload.status || ''
-      if (status === 'error') {
-        setTimeout(() => settle(false, 'Connection error'), 200)
+      if (status === 'connected') {
+        connected = true
+        if (connectedResolve) {
+          connectedResolve()
+          connectedResolve = null
+        }
+      } else if (status === 'error') {
+        setTimeout(() => settle(false, 'Connection error', 'connection'), 200)
       }
     })
 
@@ -171,12 +188,12 @@ async function executeOnHost(
           return
         }
         if (!sessionId) {
-          await settle(false, 'Failed to create session')
+          await settle(false, 'Failed to create session', 'connection')
           return
         }
 
         if (isCancelled()) {
-          await settle(false, 'Cancelled')
+          await settle(false, 'Cancelled', 'cancelled')
           return
         }
 
@@ -188,7 +205,7 @@ async function executeOnHost(
             await closeCurrentSession()
             return
           }
-          await settle(false, `Connection failed: ${e?.message || e}`)
+          await settle(false, `Connection failed: ${e?.message || e}`, 'connection')
           return
         }
         if (disposed) {
@@ -197,7 +214,26 @@ async function executeOnHost(
         }
 
         if (isCancelled()) {
-          await settle(false, 'Cancelled')
+          await settle(false, 'Cancelled', 'cancelled')
+          return
+        }
+
+        // 2.5. Wait for the shell channel before writing. SessionStart only
+        //      launches the backend connect goroutine and returns immediately;
+        //      writing earlier either fails with "not connected" (stdin not
+        //      wired yet) or is silently swallowed as auth input by the
+        //      backend's buffered authAnswerCh. The overall timeout and
+        //      status-error listeners settle the run if the shell never comes
+        //      up (e.g. interactive password prompts have no saved secret).
+        await new Promise<void>((resolve) => {
+          if (connected) {
+            resolve()
+            return
+          }
+          connectedResolve = resolve
+        })
+        if (disposed) {
+          await closeCurrentSession()
           return
         }
 
@@ -212,7 +248,7 @@ async function executeOnHost(
             await closeCurrentSession()
             return
           }
-          await settle(false, `Failed to write command: ${e?.message || e}`)
+          await settle(false, `Failed to write command: ${e?.message || e}`, 'connection')
           return
         }
         if (disposed) {
@@ -223,7 +259,7 @@ async function executeOnHost(
         // 4. 轮询取消标志（每 500ms）
         pollHandle = setInterval(() => {
           if (isCancelled()) {
-            settle(false, 'Cancelled')
+            settle(false, 'Cancelled', 'cancelled')
           }
         }, 500)
 
@@ -280,14 +316,14 @@ export async function executeBatch(opts: BatchExecuteOptions): Promise<void> {
   const tasks = hosts.map(async (conn) => {
     // 取消检查：在拿到 permit 之前就可能被取消
     if (isCancelled()) {
-      store.updateSessionStatus(conn.id, 'failed', 'Cancelled')
+      store.updateSessionStatus(conn.id, 'failed', 'Cancelled', 'cancelled')
       onHostComplete?.(conn.id, false)
       return
     }
 
     // onFailure=stop 且已有失败：跳过未开始的主机
     if (config.onFailure === 'stop' && hasFailed) {
-      store.updateSessionStatus(conn.id, 'failed', 'Skipped (onFailure=stop)')
+      store.updateSessionStatus(conn.id, 'failed', 'Skipped (onFailure=stop)', 'skipped')
       onHostComplete?.(conn.id, false)
       return
     }
@@ -296,12 +332,12 @@ export async function executeBatch(opts: BatchExecuteOptions): Promise<void> {
     try {
       // 再次检查取消（等待 permit 期间可能被取消）
       if (isCancelled()) {
-        store.updateSessionStatus(conn.id, 'failed', 'Cancelled')
+        store.updateSessionStatus(conn.id, 'failed', 'Cancelled', 'cancelled')
         onHostComplete?.(conn.id, false)
         return
       }
       if (config.onFailure === 'stop' && hasFailed) {
-        store.updateSessionStatus(conn.id, 'failed', 'Skipped (onFailure=stop)')
+        store.updateSessionStatus(conn.id, 'failed', 'Skipped (onFailure=stop)', 'skipped')
         onHostComplete?.(conn.id, false)
         return
       }
@@ -352,7 +388,7 @@ function csvEscape(s: string): string {
 }
 
 // ── 导出结果为 JSON ──
-export function exportJson(sessions: { hostName: string; hostSubtitle: string; status: string; startTime?: number; endTime?: number; output: string; error?: string }[]): string {
+export function exportJson(sessions: { hostName: string; hostSubtitle: string; status: string; startTime?: number; endTime?: number; output: string; error?: string; truncated?: boolean }[]): string {
   return JSON.stringify(
     sessions.map(s => ({
       host: s.hostName,
@@ -362,6 +398,7 @@ export function exportJson(sessions: { hostName: string; hostSubtitle: string; s
       endTime: s.endTime,
       durationMs: s.startTime && s.endTime ? s.endTime - s.startTime : undefined,
       error: s.error || undefined,
+      truncated: s.truncated || undefined,
       output: stripAnsi(s.output),
     })),
     null,

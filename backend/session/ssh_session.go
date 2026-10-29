@@ -763,21 +763,32 @@ func (s *SSHSession) startKeepAlive() {
 }
 
 func (s *SSHSession) Write(data []byte) error {
-	// During keyboard-interactive auth, route input to the auth callback.
+	// Shell channel first: once stdin is wired, input must reach the PTY.
+	// authAnswerCh stays non-nil until Connect's deferred cleanup runs, and
+	// attach emits StatusConnected before its synchronous cwd discovery —
+	// so a writer notified by 'connected' (e.g. batch execution) can land
+	// in that window. Routing post-shell input into the buffered auth
+	// channel would silently swallow it: nobody drains the buffer after
+	// auth completes. The auth channel's consumers (the pre-handshake
+	// password prompt and the keyboard-interactive challenge) both run
+	// before Shell() wires stdin, so the stdin check is a strictly safer
+	// discriminator than the channel's lifetime.
 	s.mu.RLock()
+	stdin := s.stdin
 	ch := s.authAnswerCh
 	s.mu.RUnlock()
+	if stdin != nil {
+		enc := s.encodeInput(data)
+		s.lastSent.Store(append([]byte(nil), enc...))
+		_, err := stdin.Write(enc)
+		return err
+	}
 	if ch != nil {
+		// During keyboard-interactive auth, route input to the auth callback.
 		ch <- data
 		return nil
 	}
-	if s.stdin == nil {
-		return fmt.Errorf("not connected")
-	}
-	enc := s.encodeInput(data)
-	s.lastSent.Store(append([]byte(nil), enc...))
-	_, err := s.stdin.Write(enc)
-	return err
+	return fmt.Errorf("not connected")
 }
 
 // Disconnect tears down the SSH session. It uses sync.Once so the entire

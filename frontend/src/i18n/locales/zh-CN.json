@@ -2187,5 +2187,12 @@
   "batch.statusPending": "等待",
   "batch.statusRunning": "执行中",
   "batch.statusSuccess": "成功",
-  "batch.statusFailed": "失败"
+  "batch.statusFailed": "失败",
+  "batch.statusTimeout": "超时",
+  "batch.statusCmdFailed": "命令失败",
+  "batch.statusConnFailed": "连接失败",
+  "batch.statusCancelled": "已取消",
+  "batch.statusSkipped": "已跳过",
+  "batch.outputTruncated": "输出过大，仅保留末尾部分。",
+  "batch.selectAll": "全选"
 }
