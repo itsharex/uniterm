@@ -16,6 +16,7 @@ import { usePanelStore } from '../stores/panelStore'
 import { useSessionStore } from '../stores/sessionStore'
 import { useZmodemStore } from '../stores/zmodemStore'
 import { queuedSessionWrite } from './sessionWriter'
+import { disposeSessionRecorder, getSessionRecorder } from './terminalRecorder'
 import type { CustomTerminalTheme } from '../types/settings'
 import { formatFontFamily } from '../utils/formatFontFamily'
 import { MIN_LINE_NUMBER_DIGITS } from '../utils/terminalGutter'
@@ -169,6 +170,10 @@ function createMirror(sessionId: string, options: TerminalOptions, source: Termi
   mirror.unsub = Events.On('session:data', (ev: any) => {
     const payload = ev?.data
     if (!payload || payload.id !== sessionId || typeof payload.data !== 'string') return
+    // Central recording hook: the mirror receives every session:data event
+    // regardless of panel visibility, so a running recording keeps capturing
+    // output while the terminal sits in the background.
+    getSessionRecorder(sessionId).writeData(payload.data)
     // Same zmodem cancel-window swallow as sessionStore: residual binary
     // garbage from an aborted transfer must not reach the mirror buffer.
     try {
@@ -508,6 +513,8 @@ export function releaseTerminal(sessionId: string, ref: string): void {
     // If acquireTerminal is called within 500ms, the timer is cancelled.
     managed.disposeTimer = setTimeout(() => {
       disposeMirror(sessionId)
+      // Terminal is gone: finalize any running recording for this session.
+      void disposeSessionRecorder(sessionId)
       managed.trimDispose?.dispose()
       managed.trimDispose = null
       managed.resizeDispose?.dispose()
@@ -531,6 +538,8 @@ export function disposeTerminal(sessionId: string): void {
     clearTimeout(managed.disposeTimer)
   }
   disposeMirror(sessionId)
+  // Terminal is gone: finalize any running recording for this session.
+  void disposeSessionRecorder(sessionId)
   managed.trimDispose?.dispose()
   managed.trimDispose = null
   managed.resizeDispose?.dispose()
