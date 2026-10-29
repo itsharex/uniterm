@@ -712,8 +712,29 @@ export async function runAgent(userInput: string, skillName?: string, skillBody?
       return
     }
 
-    // Enforce single tool call
+    // Enforce single tool call.
+    //
+    // When the model answers with parallel tool calls, only the first one is
+    // executed. The dropped ones stay in assistantMsg._rawApiMsg but never
+    // receive a tool_result, which leaves a *dangling* tool_use in the stored
+    // session. contextGroups() (aiContext.ts) treats an invocation without a
+    // result as unresolved and keeps its group open, so it swallows the whole
+    // remaining transcript into a single group. compactionCut() cannot trim
+    // that group ("the newest meaningful group is always retained"), and the
+    // request then exceeds CONTEXT_TRIGGER_TOKENS and the turn dies with
+    // ai.contextTooLarge.
+    //
+    // Record a tool_result for every dropped call so the stored history stays
+    // consistent — same shape as the stopRequested path above.
     if (toolUses.length > 1) {
+      for (const skipped of toolUses.slice(1)) {
+        store.addMessage({
+          id: `msg-${Date.now()}`,
+          role: 'tool',
+          content: '[Skipped: uniTerm executes one tool call per turn.]',
+          tool_call_id: skipped.id
+        })
+      }
       toolUses.splice(1)
     }
 
