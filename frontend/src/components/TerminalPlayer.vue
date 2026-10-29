@@ -61,7 +61,7 @@ import { useI18n } from '../i18n'
 
 import { RecorderGetContent } from '../../bindings/github.com/ys-ll/uniterm/app'
 import { parseCastContent, type CastEvent, type ParsedCastHeader } from '../services/terminalRecorder'
-import { getXtermTheme } from '../utils/xtermTheme'
+import { getXtermTheme } from '../composables/useTerminal'
 import { useSettingsStore } from '../stores/settingsStore'
 
 const { t } = useI18n()

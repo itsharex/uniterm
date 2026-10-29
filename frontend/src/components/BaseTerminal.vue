@@ -91,6 +91,7 @@
       <MenuItem :shortcut="menuShortcut('toggleTimestamps')" @click="toggleTimestamps">
         {{ showTimestamps ? t('settings.hideTimestamps') : t('settings.showTimestamps') }}
       </MenuItem>
+      <MenuItem @click="openRecordList">{{ t('record.openList') }}</MenuItem>
       <MenuItem v-if="supportsOutputLog" @click="toggleOutputLog">
         {{ isOutputLogOn ? t('session.stopLog') : t('session.startLog') }}
       </MenuItem>
@@ -132,6 +133,9 @@
 
     <!-- Screen preview on scrollbar hover (issue #729) -->
     <TerminalScreenPreview :session-id="props.sessionId || ''" />
+
+    <!-- Terminal session recording list + replay dialog -->
+    <RecordList v-model:visible="recordListVisible" />
   </div>
 </template>
 
@@ -199,6 +203,7 @@ import { recordWrite, stampCommandLine, currentAbsoluteLine, clearRegistry } fro
 import { useZmodemStore } from '../stores/zmodemStore'
 import ZmodemTransfer from './ZmodemTransfer.vue'
 import TerminalScreenPreview from './TerminalScreenPreview.vue'
+import RecordList from './RecordList.vue'
 import { Browser, Events } from '@wailsio/runtime'
 import type { ISearchOptions } from '@xterm/addon-search'
 import { CaseSensitive, ChevronUp, ChevronDown, Regex, WholeWord, X } from '@lucide/vue'
@@ -2523,6 +2528,13 @@ function openMonitor() {
     // sourceTabId anchors the new monitor tab beside the owning terminal tab
     window.dispatchEvent(new CustomEvent('app:connect-monitor', { detail: { ...p, sourceTabId: p.tabId } }))
   }
+}
+
+// Terminal session recording list (cast replay) dialog visibility.
+const recordListVisible = ref(false)
+function openRecordList() {
+  menu.closeMenu()
+  recordListVisible.value = true
 }
 
 const terminalMenuRef = ref<InstanceType<typeof Menu> | null>(null)
