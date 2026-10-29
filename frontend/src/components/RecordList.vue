@@ -9,6 +9,10 @@
   >
     <div class="record-list-toolbar">
       <el-button size="small" @click="loadList" :loading="loading">{{ t('common.refresh') }}</el-button>
+      <el-button size="small" @click="openRecordsDir" :disabled="recordings.length === 0">{{ t('record.openDir') }}</el-button>
+      <el-button size="small" type="danger" plain @click="deleteAllRecordings" :disabled="recordings.length === 0" :loading="deletingAll">
+        {{ t('record.deleteAll') }}
+      </el-button>
       <span class="record-count">{{ recordings.length }} {{ t('record.list') }}</span>
     </div>
 
@@ -20,7 +24,11 @@
       style="width: 100%"
       :row-key="(r: RecordingInfo) => r.filePath"
     >
-      <el-table-column :label="t('record.fileName')" prop="fileName" min-width="220" show-overflow-tooltip />
+      <el-table-column :label="t('record.connection')" min-width="160" show-overflow-tooltip>
+        <template #default="{ row }">
+          {{ row.title || row.sessionId }}
+        </template>
+      </el-table-column>
       <el-table-column :label="t('record.startTime')" width="160">
         <template #default="{ row }">
           {{ formatStartTime(row.startTime) }}
@@ -64,13 +72,14 @@ import { ref, computed } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useI18n } from '../i18n'
 import { msg } from '../services/message'
-import { RecorderList, RecorderDelete } from '../../bindings/github.com/ys-ll/uniterm/app'
+import { RecorderList, RecorderDelete, RecorderOpenDir } from '../../bindings/github.com/ys-ll/uniterm/app'
 import TerminalPlayer from './TerminalPlayer.vue'
 
 interface RecordingInfo {
   filePath: string
   fileName: string
   sessionId: string
+  title: string
   startTime: number
   duration: number
   size: number
@@ -88,6 +97,7 @@ const visible = computed({
 
 const recordings = ref<RecordingInfo[]>([])
 const loading = ref(false)
+const deletingAll = ref(false)
 const playerVisible = ref(false)
 const playerFilePath = ref('')
 
@@ -122,6 +132,39 @@ async function deleteRecording(row: RecordingInfo) {
     await loadList()
   } catch (e: any) {
     msg.error(t('record.deleteFailed', { error: String(e?.message ?? e) }))
+  }
+}
+
+async function deleteAllRecordings() {
+  try {
+    await ElMessageBox.confirm(t('record.deleteAllConfirm'), t('common.confirm'), {
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+  deletingAll.value = true
+  try {
+    // The list is bounded by what RecorderList returned; deletions run
+    // sequentially so a busy backend never sees concurrent file removals.
+    for (const row of recordings.value) {
+      try {
+        await RecorderDelete(row.filePath)
+      } catch (e: any) {
+        msg.error(t('record.deleteFailed', { error: String(e?.message ?? e) }))
+      }
+    }
+    await loadList()
+  } finally {
+    deletingAll.value = false
+  }
+}
+
+async function openRecordsDir() {
+  try {
+    await RecorderOpenDir()
+  } catch (e: any) {
+    msg.error(String(e?.message ?? e))
   }
 }
 

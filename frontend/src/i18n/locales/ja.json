@@ -2135,5 +2135,19 @@
   "record.playBtn": "再生",
   "record.speed": "倍速",
   "record.loadFailed": "読み込みに失敗しました：{error}",
-  "record.sensitiveWarning": "録画内容に機密情報が含まれている可能性があります。安全に保管してください。"
+  "record.sensitiveWarning": "録画内容に機密情報が含まれている可能性があります。安全に保管してください。",
+  "record.menu": "録画",
+  "record.start": "録画を開始",
+  "record.stop": "録画を停止",
+  "record.started": "録画を開始しました：{path}",
+  "record.stopped": "録画を保存しました：{path}",
+  "record.startFailed": "録画操作に失敗しました：{error}",
+  "record.deleteAll": "すべて削除",
+  "record.deleteAllConfirm": "すべての録画ファイルを削除しますか？",
+  "record.openDir": "フォルダを開く",
+  "record.connection": "接続",
+  "terminal.clearScreen": "画面をクリア",
+  "terminal.display": "表示",
+  "terminal.transfer": "転送",
+  "session.logRecordMenu": "ログと録画"
 }

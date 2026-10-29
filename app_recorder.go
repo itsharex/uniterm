@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/ys-ll/uniterm/backend/recorder"
 )
 
@@ -19,11 +21,11 @@ func recorderInst() *recorder.Recorder {
 	return recorder.New()
 }
 
-// RecorderStart creates a new cast v2 file under ~/.uniterm/records/ and
-// writes the JSON header. Returns the absolute file path the frontend should
+// RecorderStart creates a new cast v2 file under <home>/Documents/uniTerm/records/
+// and writes the JSON header. Returns the absolute file path the frontend should
 // pass to subsequent RecorderWriteData / RecorderStop calls.
-func (a *App) RecorderStart(sessionID string, width int, height int) (string, error) {
-	return recorderInst().StartRecording(sessionID, width, height)
+func (a *App) RecorderStart(sessionID string, width int, height int, title string) (string, error) {
+	return recorderInst().StartRecording(sessionID, width, height, title)
 }
 
 // RecorderWriteData appends one `[elapsed, "o", data]` row to the cast file
@@ -60,4 +62,13 @@ func (a *App) RecorderDelete(filePath string) error {
 // player parses the header + data rows to drive xterm.js replay.
 func (a *App) RecorderGetContent(filePath string) (string, error) {
 	return recorderInst().GetRecordingContent(filePath)
+}
+
+// RecorderOpenDir opens the records directory in the OS file manager.
+func (a *App) RecorderOpenDir() error {
+	dir := recorderInst().RecordsDir()
+	if dir == "" {
+		return fmt.Errorf("recorder: records directory unavailable")
+	}
+	return a.OpenPathInExplorer(dir)
 }

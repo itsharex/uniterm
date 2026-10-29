@@ -2135,5 +2135,19 @@
   "record.playBtn": "재생",
   "record.speed": "배속",
   "record.loadFailed": "로드 실패: {error}",
-  "record.sensitiveWarning": "녹화 내용에 민감한 정보가 포함될 수 있습니다. 안전하게 보관하세요."
+  "record.sensitiveWarning": "녹화 내용에 민감한 정보가 포함될 수 있습니다. 안전하게 보관하세요.",
+  "record.menu": "녹화",
+  "record.start": "녹화 시작",
+  "record.stop": "녹화 중지",
+  "record.started": "녹화가 시작되었습니다: {path}",
+  "record.stopped": "녹화가 저장되었습니다: {path}",
+  "record.startFailed": "녹화 작업 실패: {error}",
+  "record.deleteAll": "모두 삭제",
+  "record.deleteAllConfirm": "모든 녹화 파일을 삭제하시겠습니까?",
+  "record.openDir": "폴더 열기",
+  "record.connection": "연결",
+  "terminal.clearScreen": "화면 지우기",
+  "terminal.display": "표시",
+  "terminal.transfer": "전송",
+  "session.logRecordMenu": "로그 및 녹화"
 }

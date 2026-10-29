@@ -2166,5 +2166,19 @@
   "record.playBtn": "播放",
   "record.speed": "倍速",
   "record.loadFailed": "加载失败：{error}",
-  "record.sensitiveWarning": "录制内容可能包含敏感信息，请妥善保管"
+  "record.sensitiveWarning": "录制内容可能包含敏感信息，请妥善保管",
+  "record.start": "开始录制",
+  "record.stop": "停止录制",
+  "record.started": "录制已开始：{path}",
+  "record.stopped": "录制已保存：{path}",
+  "record.startFailed": "录制操作失败：{error}",
+  "record.menu": "录制",
+  "record.deleteAll": "全部删除",
+  "record.deleteAllConfirm": "确定删除全部录制文件吗？",
+  "record.openDir": "打开目录",
+  "record.connection": "连接",
+  "terminal.clearScreen": "清屏",
+  "terminal.display": "显示",
+  "terminal.transfer": "传输",
+  "session.logRecordMenu": "日志与录制"
 }

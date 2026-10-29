@@ -19,6 +19,52 @@ import {
   RecorderStop,
   RecorderIsRecording,
 } from '../../bindings/github.com/ys-ll/uniterm/app'
+import { msg } from './message'
+
+let sensitiveWarned = false
+
+/**
+ * Show the "recordings may contain sensitive information" notice once per
+ * profile (persisted in localStorage). Call right before/after the first
+ * successful start, from every UI entry point.
+ */
+export function maybeWarnSensitive(warnText: string): void {
+  if (sensitiveWarned) return
+  try {
+    if (localStorage.getItem('record.sensitiveWarningShown')) {
+      sensitiveWarned = true
+      return
+    }
+    localStorage.setItem('record.sensitiveWarningShown', '1')
+  } catch {
+    return
+  }
+  sensitiveWarned = true
+  msg.warning(warnText)
+}
+
+// Session-keyed recorder registry: state must survive component unmount
+// (KeepAlive, pane drag) and stay reachable for auto-stop when the terminal
+// is released, so recorders live outside the component tree.
+const recorders = new Map<string, TerminalRecorder>()
+
+/** Get (or lazily create) the recorder bound to a terminal session. */
+export function getSessionRecorder(sessionId: string): TerminalRecorder {
+  let rec = recorders.get(sessionId)
+  if (!rec) {
+    rec = new TerminalRecorder()
+    recorders.set(sessionId, rec)
+  }
+  return rec
+}
+
+/** Stop and drop the recorder for a session (called on terminal release). */
+export async function disposeSessionRecorder(sessionId: string): Promise<void> {
+  const rec = recorders.get(sessionId)
+  if (!rec) return
+  recorders.delete(sessionId)
+  await rec.stop()
+}
 
 export interface RecordingMeta {
   filePath: string
@@ -37,6 +83,33 @@ export class TerminalRecorder {
   private writeQueue: Promise<void> = Promise.resolve()
   /** 累计写入字节数（粗略，用于分段提示）。 */
   private bytesWritten = 0
+  /** Coalesced write buffer: one IPC per flush instead of per output chunk.
+   * Bulk output (cat of a large file, TUI redraws) produces hundreds of
+   * chunks per second; per-chunk IPC calls would pile up unboundedly. */
+  private pending: string[] = []
+  private pendingBytes = 0
+  private flushTimer: ReturnType<typeof setTimeout> | null = null
+  private static readonly FLUSH_INTERVAL_MS = 40
+  private static readonly FLUSH_MAX_BYTES = 64 * 1024
+
+  /** Send the coalesced buffer as a single write. Cast v2 rows concatenate,
+   * so one merged "o" event replays identically (40ms timing granularity). */
+  private flush(): void {
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer)
+      this.flushTimer = null
+    }
+    if (!this.recording || !this.filePath || this.pending.length === 0) return
+    const path = this.filePath
+    const batch = this.pending.join('')
+    this.pending = []
+    this.pendingBytes = 0
+    this.writeQueue = this.writeQueue
+      .then(() => RecorderWriteData(path, batch))
+      .catch((err) => {
+        console.warn('[terminalRecorder] writeData failed:', err)
+      })
+  }
 
   /** 当前是否正在录制。 */
   isRecording(): boolean {
@@ -63,8 +136,9 @@ export class TerminalRecorder {
    * @param sessionId 终端 session id
    * @param width     终端列数
    * @param height    终端行数
+   * @param title     连接名，写入 cast header 供录制列表展示
    */
-  async start(sessionId: string, width: number, height: number): Promise<string> {
+  async start(sessionId: string, width: number, height: number, title = ''): Promise<string> {
     if (this.recording) {
       // 已在录制：返回当前文件路径，不重复创建。
       return this.filePath || ''
@@ -72,7 +146,7 @@ export class TerminalRecorder {
     if (!sessionId) {
       throw new Error('terminalRecorder: empty sessionId')
     }
-    const path = await RecorderStart(sessionId, width || 80, height || 24)
+    const path = await RecorderStart(sessionId, width || 80, height || 24, title || '')
     this.sessionId = sessionId
     this.filePath = path
     this.recording = true
@@ -81,21 +155,25 @@ export class TerminalRecorder {
   }
 
   /**
-   * 写入一帧终端输出数据。串行排队，不阻塞调用方。
+   * 写入一帧终端输出数据。合并进缓冲，按间隔/大小刷出，不阻塞调用方。
    * 调用方应在 session:data hook 中同步调用，无需 await。
    */
   writeData(data: string): void {
     if (!this.recording || !this.filePath || !data) return
-    const path = this.filePath
     // 累计字节（UTF-16 → 估长，足够分段提示用）。
     this.bytesWritten += data.length
-    // 串行排队：每个 write 等 binding 返回后再发下一个。
-    this.writeQueue = this.writeQueue
-      .then(() => RecorderWriteData(path, data))
-      .catch((err) => {
-        // 单帧写入失败不中断录制（可能因窗口隐藏/IPC 抖动）。
-        console.warn('[terminalRecorder] writeData failed:', err)
-      })
+    this.pending.push(data)
+    this.pendingBytes += data.length
+    if (this.pendingBytes >= TerminalRecorder.FLUSH_MAX_BYTES) {
+      this.flush()
+      return
+    }
+    if (!this.flushTimer) {
+      this.flushTimer = setTimeout(() => {
+        this.flushTimer = null
+        this.flush()
+      }, TerminalRecorder.FLUSH_INTERVAL_MS)
+    }
   }
 
   /**
@@ -106,7 +184,8 @@ export class TerminalRecorder {
       return this.filePath || ''
     }
     const path = this.filePath
-    // 等待所有排队写入完成，再关闭文件，避免丢尾。
+    // 先冲刷合并缓冲，再等队列排空并关闭文件，避免丢尾。
+    this.flush()
     try {
       await this.writeQueue
     } catch {

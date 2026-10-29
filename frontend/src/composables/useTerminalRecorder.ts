@@ -7,6 +7,7 @@ import {
   EnableSessionOutputLog,
   DisableSessionOutputLog,
   GetSessionOutputLogInfo,
+  DefaultSessionLogDir,
   OpenPathInExplorer,
 } from '../../bindings/github.com/ys-ll/uniterm/app'
 import { tryAndroidSave } from '../utils/androidSave'
@@ -198,9 +199,19 @@ export function useTerminalRecorder(options: UseTerminalRecorderOptions) {
 
   async function openLogDir() {
     closeMenu()
-    if (!outputLogPath.value) return
+    // Always available: without a running panel log, fall back to the
+    // OS-default session log directory.
+    let dir = outputLogPath.value
+    if (!dir) {
+      try {
+        dir = await DefaultSessionLogDir()
+      } catch {
+        return
+      }
+    }
+    if (!dir) return
     try {
-      await OpenPathInExplorer(outputLogPath.value)
+      await OpenPathInExplorer(dir)
     } catch (e: any) {
       msg.error(String(e?.message ?? e))
     }

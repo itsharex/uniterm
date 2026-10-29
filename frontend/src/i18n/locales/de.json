@@ -2135,5 +2135,19 @@
   "record.playBtn": "Wiedergeben",
   "record.speed": "Geschwindigkeit",
   "record.loadFailed": "Laden fehlgeschlagen: {error}",
-  "record.sensitiveWarning": "Die Aufzeichnung kann sensible Informationen enthalten. Bitte sicher aufbewahren."
+  "record.sensitiveWarning": "Die Aufzeichnung kann sensible Informationen enthalten. Bitte sicher aufbewahren.",
+  "record.menu": "Aufnahme",
+  "record.start": "Aufnahme starten",
+  "record.stop": "Aufnahme beenden",
+  "record.started": "Aufnahme gestartet: {path}",
+  "record.stopped": "Aufnahme gespeichert: {path}",
+  "record.startFailed": "Aufnahmefehler: {error}",
+  "record.deleteAll": "Alle löschen",
+  "record.deleteAllConfirm": "Alle Aufnahmen löschen?",
+  "record.openDir": "Ordner öffnen",
+  "record.connection": "Verbindung",
+  "terminal.clearScreen": "Bildschirm löschen",
+  "terminal.display": "Anzeige",
+  "terminal.transfer": "Übertragung",
+  "session.logRecordMenu": "Protokoll & Aufnahme"
 }

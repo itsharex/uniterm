@@ -2135,5 +2135,19 @@
   "record.playBtn": "Reproducir",
   "record.speed": "Velocidad",
   "record.loadFailed": "Error al cargar: {error}",
-  "record.sensitiveWarning": "La grabación puede contener información confidencial. Consérvela de forma segura."
+  "record.sensitiveWarning": "La grabación puede contener información confidencial. Consérvela de forma segura.",
+  "record.menu": "Grabación",
+  "record.start": "Iniciar grabación",
+  "record.stop": "Detener grabación",
+  "record.started": "Grabación iniciada: {path}",
+  "record.stopped": "Grabación guardada: {path}",
+  "record.startFailed": "Error de grabación: {error}",
+  "record.deleteAll": "Eliminar todo",
+  "record.deleteAllConfirm": "¿Eliminar todas las grabaciones?",
+  "record.openDir": "Abrir carpeta",
+  "record.connection": "Conexión",
+  "terminal.clearScreen": "Limpiar pantalla",
+  "terminal.display": "Visualización",
+  "terminal.transfer": "Transferencia",
+  "session.logRecordMenu": "Registro y grabación"
 }

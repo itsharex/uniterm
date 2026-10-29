@@ -2135,5 +2135,19 @@
   "record.playBtn": "Воспроизвести",
   "record.speed": "Скорость",
   "record.loadFailed": "Ошибка загрузки: {error}",
-  "record.sensitiveWarning": "Запись может содержать конфиденциальную информацию. Храните в безопасности."
+  "record.sensitiveWarning": "Запись может содержать конфиденциальную информацию. Храните в безопасности.",
+  "record.menu": "Запись",
+  "record.start": "Начать запись",
+  "record.stop": "Остановить запись",
+  "record.started": "Запись началась: {path}",
+  "record.stopped": "Запись сохранена: {path}",
+  "record.startFailed": "Ошибка записи: {error}",
+  "record.deleteAll": "Удалить все",
+  "record.deleteAllConfirm": "Удалить все файлы записей?",
+  "record.openDir": "Открыть папку",
+  "record.connection": "Подключение",
+  "terminal.clearScreen": "Очистить экран",
+  "terminal.display": "Отображение",
+  "terminal.transfer": "Передача",
+  "session.logRecordMenu": "Журнал и запись"
 }

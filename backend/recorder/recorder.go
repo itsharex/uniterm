@@ -9,15 +9,17 @@
 // All data lines use raw (non-base64) terminal bytes encoded as a JSON string,
 // which preserves ANSI escape sequences for faithful replay in xterm.js.
 //
-// Files live under <home>/.uniterm/records/<sessionId>_<unixTs>.cast. The
-// directory is created on first use. A process-wide Recorder instance tracks
-// open file handles so the hot path (WriteRecordingData) is a single mutex'd
-// append, not an open/write/close cycle per data chunk.
+// Files live under <home>/Documents/uniTerm/records/<sessionId>_<unixTs>.cast,
+// next to the session output logs. The directory is created on first use. A
+// process-wide Recorder instance tracks open file handles so the hot path
+// (WriteRecordingData) is a single mutex'd append, not an open/write/close
+// cycle per data chunk.
 package recorder
 
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -31,6 +33,7 @@ type RecordingInfo struct {
 	FilePath  string `json:"filePath"`
 	FileName  string `json:"fileName"`
 	SessionID string `json:"sessionId"`
+	Title     string `json:"title"`     // connection name from the header, "" if absent
 	StartTime int64  `json:"startTime"` // unix seconds, parsed from filename
 	Duration  int64  `json:"duration"`  // seconds, derived from last data row
 	Size      int64  `json:"size"`      // bytes
@@ -42,6 +45,7 @@ type castHeader struct {
 	Width     int               `json:"width"`
 	Height    int               `json:"height"`
 	Timestamp int64             `json:"timestamp"`
+	Title     string            `json:"title,omitempty"`
 	Env       map[string]string `json:"env"`
 }
 
@@ -80,26 +84,38 @@ func New() *Recorder {
 	return globalInst
 }
 
-// recordsDir resolves <home>/.uniterm/records, creating it on first use.
-// Falls back to <tmp>/uniterm/records if the home directory is unavailable.
+// recordsDir resolves <home>/Documents/uniTerm/records — the same base as the
+// session output logs — creating it on first use. Falls back to
+// <tmp>/uniterm/records if the home directory is unavailable.
 func (r *Recorder) recordsDir() (string, error) {
 	r.dirOnce.Do(func() {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			r.baseDir = filepath.Join(os.TempDir(), "uniterm", "records")
 		} else {
-			r.baseDir = filepath.Join(home, ".uniterm", "records")
+			r.baseDir = filepath.Join(home, "Documents", "uniTerm", "records")
 		}
 		r.dirErr = os.MkdirAll(r.baseDir, 0755)
 	})
 	return r.baseDir, r.dirErr
 }
 
+// RecordsDir returns (and creates) the records directory. Used by the App
+// layer for the "open folder" action.
+func (r *Recorder) RecordsDir() string {
+	dir, err := r.recordsDir()
+	if err != nil {
+		return ""
+	}
+	return dir
+}
+
 // StartRecording creates a new cast file under the records directory, writes
 // the v2 header, and returns the absolute file path. The sessionID is
-// embedded in the filename; width/height populate the header. If a recording
-// for the returned path is already open, it is closed first (defensive).
-func (r *Recorder) StartRecording(sessionID string, width, height int) (string, error) {
+// embedded in the filename; width/height and the human-readable title
+// (connection name) populate the header. If a recording for the returned
+// path is already open, it is closed first (defensive).
+func (r *Recorder) StartRecording(sessionID string, width, height int, title string) (string, error) {
 	if sessionID == "" {
 		return "", fmt.Errorf("recorder: empty session id")
 	}
@@ -128,6 +144,7 @@ func (r *Recorder) StartRecording(sessionID string, width, height int) (string, 
 		Width:     width,
 		Height:    height,
 		Timestamp: ts,
+		Title:     title,
 		Env: map[string]string{
 			"SHELL": os.Getenv("SHELL"),
 			"TERM":  "xterm-256color",
@@ -253,6 +270,7 @@ func (r *Recorder) ListRecordings() ([]RecordingInfo, error) {
 			FileName:  e.Name(),
 			Size:      info.Size(),
 			SessionID: parseSessionID(e.Name()),
+			Title:     parseHeaderTitle(path),
 			StartTime: parseStartTime(e.Name()),
 		}
 		ri.Duration = deriveDuration(path, ri.StartTime)
@@ -323,6 +341,22 @@ func parseSessionID(name string) string {
 		return ""
 	}
 	return base[:idx]
+}
+
+// parseHeaderTitle reads the cast header (line 1) and returns the connection
+// title recorded in it. Returns "" on any parse failure — the UI falls back
+// to the session id / file name.
+func parseHeaderTitle(path string) string {
+	f, err := os.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	var header castHeader
+	if err := json.NewDecoder(io.LimitReader(f, 4096)).Decode(&header); err != nil {
+		return ""
+	}
+	return header.Title
 }
 
 // parseStartTime extracts the unix timestamp from a filename of the form

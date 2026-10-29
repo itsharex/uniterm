@@ -2166,5 +2166,19 @@
   "record.playBtn": "播放",
   "record.speed": "倍速",
   "record.loadFailed": "載入失敗：{error}",
-  "record.sensitiveWarning": "錄製內容可能包含敏感資訊，請妥善保管"
+  "record.sensitiveWarning": "錄製內容可能包含敏感資訊，請妥善保管",
+  "record.menu": "錄製",
+  "record.start": "開始錄製",
+  "record.stop": "停止錄製",
+  "record.started": "錄製已開始：{path}",
+  "record.stopped": "錄製已儲存：{path}",
+  "record.startFailed": "錄製操作失敗：{error}",
+  "record.deleteAll": "全部刪除",
+  "record.deleteAllConfirm": "確定刪除全部錄製檔案嗎？",
+  "record.openDir": "開啟目錄",
+  "record.connection": "連線",
+  "terminal.clearScreen": "清除螢幕",
+  "terminal.display": "顯示",
+  "terminal.transfer": "傳輸",
+  "session.logRecordMenu": "日誌與錄製"
 }
