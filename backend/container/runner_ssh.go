@@ -154,13 +154,12 @@ func (r *SSHRunner) run(ctx context.Context, argv []string, stdin []byte) (out [
 		}
 		return stdout.Bytes(), nil
 	}
-	// 带标准输入：Start 后写入并关闭 stdin 再等退出，避免管道死锁。
-	if err := sess.Start(JoinShellCommand(argv)); err != nil {
-		return nil, err
-	}
+	// stdin 管道必须在 Start 前创建；启动后写入并关闭，再等退出。
 	w, err := sess.StdinPipe()
 	if err != nil {
-		_ = sess.Close()
+		return nil, err
+	}
+	if err := sess.Start(JoinShellCommand(argv)); err != nil {
 		return nil, err
 	}
 	if _, err := w.Write(stdin); err != nil {
