@@ -439,6 +439,13 @@
                       <el-option :value="true" :label="t('conn.rdpAdminSessionOn')" />
                     </el-select>
                   </el-form-item>
+                  <el-form-item :label="t('conn.rdpQuality')">
+                    <el-select v-model="form.rdpQuality" style="width: 100%">
+                      <el-option value="high" :label="t('conn.rdpQualityHigh')" />
+                      <el-option value="balanced" :label="t('conn.rdpQualityBalanced')" />
+                      <el-option value="low" :label="t('conn.rdpQualityLow')" />
+                    </el-select>
+                  </el-form-item>
                   <el-form-item :label="t('conn.rdpEnableNLA')">
                     <el-switch v-model="form.rdpEnableNLA" />
                   </el-form-item>
@@ -763,6 +770,7 @@ import IdentityEditDialog from './IdentityEditDialog.vue'
 import ProxyEditDialog from './ProxyEditDialog.vue'
 import SSHAlgorithmsDialog from './SSHAlgorithmsDialog.vue'
 import { isSqlDbType } from '../utils/quickConnect'
+import { RDP_RESOLUTION_PRESETS } from '../utils/rdpResolutions'
 import { CATEGORY_META, CATEGORY_ORDER, CONNECTION_TYPES, connectionTypeFormLabel, connectionTypeInfo, defaultPortFor } from '../utils/connectionTypes'
 import { getShellLabel as getShellLabelBase } from '../utils/shellLabel'
 import { backendErrorText } from '../utils/backendError'
@@ -1091,6 +1099,7 @@ const form = reactive<ConnectionConfig>({
   rdpDomain: '',
   rdpEnableNLA: true,
   rdpAdminSession: false,
+  rdpQuality: 'balanced',
   dbType: '',
   dbName: '',
   dbParams: '',
@@ -1186,26 +1195,11 @@ function onSSHAlgoSaved(config: SSHAlgoConfig) {
 const RDP_ADAPTIVE_RESOLUTION = 'adaptive'
 const RDP_CUSTOM_RESOLUTION = 'custom'
 
-// Default preset list (mstsc-style), plus a "custom" entry that reveals
-// free width/height inputs — the RDP protocol accepts any desktop size, so
+// Default preset list (mstsc-style), shared with the RDP status bar /
+// fullscreen toolbar selectors; plus a "custom" entry that reveals free
+// width/height inputs — the RDP protocol accepts any desktop size, so
 // presets cannot cover every monitor (e.g. 1360×768).
-const rdpResolutions = [
-  { label: '800 × 600 (SVGA)', w: 800, h: 600 },
-  { label: '1024 × 768 (XGA)', w: 1024, h: 768 },
-  { label: '1280 × 720 (HD)', w: 1280, h: 720 },
-  { label: '1280 × 800 (WXGA)', w: 1280, h: 800 },
-  { label: '1280 × 1024 (SXGA)', w: 1280, h: 1024 },
-  { label: '1366 × 768 (HD)', w: 1366, h: 768 },
-  { label: '1440 × 900 (WXGA+)', w: 1440, h: 900 },
-  { label: '1600 × 900 (HD+)', w: 1600, h: 900 },
-  { label: '1600 × 1200 (UXGA)', w: 1600, h: 1200 },
-  { label: '1680 × 1050 (WSXGA+)', w: 1680, h: 1050 },
-  { label: '1920 × 1080 (Full HD)', w: 1920, h: 1080 },
-  { label: '1920 × 1200 (WUXGA)', w: 1920, h: 1200 },
-  { label: '2560 × 1440 (QHD)', w: 2560, h: 1440 },
-  { label: '2560 × 1600 (WQXGA)', w: 2560, h: 1600 },
-  { label: '3840 × 2160 (4K UHD)', w: 3840, h: 2160 },
-]
+const rdpResolutions = RDP_RESOLUTION_PRESETS
 
 // computed (not a plain const) so the labels re-evaluate when the UI locale
 // changes; a const would freeze the language from component-mount time.
@@ -1359,6 +1353,8 @@ watch(() => props.editConfig, (config) => {
     form.x11Forwarding = config.x11Forwarding ?? false
     form.rdpEnableNLA = config.rdpEnableNLA ?? false
     form.rdpAdminSession = config.rdpAdminSession ?? false
+    // Older connections predate the tier field; they get the default tier.
+    form.rdpQuality = config.rdpQuality ?? 'balanced'
     form.agentForwarding = config.agentForwarding ?? false
     // Existing SSH connections without the field default to SFTP (old behavior).
     form.fileTransferProto = config.fileTransferProto ?? 'sftp'
@@ -1497,6 +1493,7 @@ function resetForm() {
   form.rdpDomain = ''
   form.rdpEnableNLA = true
   form.rdpAdminSession = false
+  form.rdpQuality = 'balanced'
   form.kerberosRealm = ''
   form.sshAlgorithms = undefined
   form.dbType = ''
