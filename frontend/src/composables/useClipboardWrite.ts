@@ -44,7 +44,11 @@ const browserWriter: ClipboardWriter = async (text) => {
 const wailsWriter: ClipboardWriter = async (text) => {
   let ok = false
   try {
-    ok = await withTimeout(Clipboard.SetText(text).then(v => Boolean(v)), () => false)
+    // Wails v3's runtime SetText resolves with no value on success, even
+    // though the underlying Go API returns bool. Do not mistake that void
+    // result for failure and write again through WKWebView's browser API.
+    // Keep explicit false as failure for runtimes that expose a status.
+    ok = await withTimeout(Clipboard.SetText(text).then((value: unknown) => value !== false), () => false)
   } catch {
     ok = false
   }
