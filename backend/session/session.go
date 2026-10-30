@@ -135,6 +135,13 @@ type ConnectionConfig struct {
 	RdpQuality string `json:"rdpQuality,omitempty"`
 	// Local terminal shell path
 	ShellPath string `json:"shellPath,omitempty"`
+	// Extra command-line arguments appended to the local shell's launch
+	// command line (WindTerm-style). For cmd.exe the arguments are consumed
+	// by /k as the command to run, which enables launching another terminal
+	// program with parameters. Also passed through to wsl:// distros and,
+	// split into separate argv entries, to Unix shells. Ignored for the
+	// clink:// wrapper, which builds its own command line.
+	ShellArgs string `json:"shellArgs,omitempty"`
 	// Working directory for local terminal (defaults to user home directory if empty)
 	Cwd string `json:"cwd,omitempty"`
 	// Serial port configuration
@@ -1082,3 +1089,36 @@ const (
 	postLoginInitTimeout = 10 * time.Second
 	postLoginStepTimeout = 3 * time.Second
 )
+
+// splitShellArgs splits a command-line argument string on whitespace,
+// treating double-quoted segments as single arguments (Windows command-line
+// rules). Used to turn ConnectionConfig.ShellArgs into separate argv entries
+// for spawn paths that take an argument slice instead of a command line.
+func splitShellArgs(s string) []string {
+	var args []string
+	var cur strings.Builder
+	inQuote := false
+	hasArg := false
+	for _, r := range s {
+		switch {
+		case r == '"':
+			inQuote = !inQuote
+			hasArg = true
+		case r == ' ' || r == '\t':
+			if inQuote {
+				cur.WriteRune(r)
+			} else if hasArg {
+				args = append(args, cur.String())
+				cur.Reset()
+				hasArg = false
+			}
+		default:
+			cur.WriteRune(r)
+			hasArg = true
+		}
+	}
+	if hasArg {
+		args = append(args, cur.String())
+	}
+	return args
+}

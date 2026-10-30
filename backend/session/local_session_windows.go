@@ -251,9 +251,15 @@ func (s *LocalSession) Connect(config ConnectionConfig) error {
 				log.Writef("wsl: cwd hook skipped (unsupported shell %q)", sh)
 			}
 		}
-		wslArgs := buildWSLStartArgs(distro, config.Cwd, nil)
-		commandLine = "wsl.exe " + strings.Join(wslArgs, " ")
-		cmd = exec.Command("wsl.exe", wslArgs...)
+		// The command line keeps ShellArgs verbatim: splitShellArgs strips
+		// the quotes, and re-joining the pieces would break arguments with
+		// spaces (e.g. sh -c "echo hi") under CreateProcess parsing. The
+		// split form is only for exec.Command, which takes separate argv.
+		commandLine = "wsl.exe " + strings.Join(buildWSLStartArgs(distro, config.Cwd, nil), " ")
+		if config.ShellArgs != "" {
+			commandLine += " " + config.ShellArgs
+		}
+		cmd = exec.Command("wsl.exe", buildWSLStartArgs(distro, config.Cwd, splitShellArgs(config.ShellArgs))...)
 		cmd.Env = os.Environ()
 	} else if clinkExe != "" {
 		// Tabby-style clink injection: cmd.exe /k <clink> inject --profile
@@ -264,14 +270,15 @@ func (s *LocalSession) Connect(config ConnectionConfig) error {
 		cmd = exec.Command("cmd.exe")
 		cmd.Env = append(os.Environ(), clinkEnv...)
 	} else {
-		commandLine = buildCommandLine(shell)
+		commandLine = buildCommandLine(shell, config.ShellArgs)
+		extraArgs := splitShellArgs(config.ShellArgs)
 		lowerShell := strings.ToLower(shell)
 		if strings.Contains(lowerShell, "bash") {
 			if strings.Contains(lowerShell, "system32") || strings.Contains(lowerShell, "wsl") {
-				cmd = exec.Command(shell)
+				cmd = exec.Command(shell, extraArgs...)
 				cmd.Env = os.Environ()
 			} else {
-				cmd = exec.Command(shell, "--login", "-i")
+				cmd = exec.Command(shell, append([]string{"--login", "-i"}, extraArgs...)...)
 				// MSYS bash reads TERM from the environment; honor the
 				// connection's explicit terminal type when one is set.
 				term := "TERM=" + DefaultTermType
@@ -284,11 +291,12 @@ func (s *LocalSession) Connect(config ConnectionConfig) error {
 		} else {
 			// Mirror the ConPTY command line: cmd.exe gets /k there too, so
 			// the pipe fallback must not silently drop it.
+			var cmdArgs []string
 			if strings.Contains(lowerShell, "cmd.exe") {
-				cmd = exec.Command(shell, "/k")
-			} else {
-				cmd = exec.Command(shell)
+				cmdArgs = append(cmdArgs, "/k")
 			}
+			cmdArgs = append(cmdArgs, extraArgs...)
+			cmd = exec.Command(shell, cmdArgs...)
 			cmd.Env = os.Environ()
 		}
 	}
@@ -524,21 +532,30 @@ func buildWSLStartArgs(distro string, cwd string, startArgs []string) []string {
 	return append(args, startArgs...)
 }
 
-func buildCommandLine(shell string) string {
+// buildCommandLine builds the CreateProcess command line for a local shell.
+// extraArgs (ConnectionConfig.ShellArgs) is appended verbatim after the
+// shell's default flags; for cmd.exe it is consumed by /k as the command to
+// run, which is how users launch another terminal program with parameters.
+func buildCommandLine(shell, extraArgs string) string {
 	lower := strings.ToLower(shell)
-	quoted := fmt.Sprintf(`"%s"`, shell)
+	var commandLine string
 
 	if strings.Contains(lower, "bash") {
 		// WSL bash (inside System32) does not support --login -i passed this way.
 		if strings.Contains(lower, "system32") || strings.Contains(lower, "wsl") {
-			return quoted
+			commandLine = fmt.Sprintf(`"%s"`, shell)
+		} else {
+			commandLine = fmt.Sprintf(`"%s" --login -i`, shell)
 		}
-		return fmt.Sprintf(`"%s" --login -i`, shell)
+	} else if strings.Contains(lower, "cmd.exe") {
+		commandLine = fmt.Sprintf(`"%s" /k`, shell)
+	} else {
+		commandLine = fmt.Sprintf(`"%s"`, shell)
 	}
-	if strings.Contains(lower, "cmd.exe") {
-		return fmt.Sprintf(`"%s" /k`, shell)
+	if extraArgs != "" {
+		commandLine += " " + extraArgs
 	}
-	return quoted
+	return commandLine
 }
 
 func shellName(path string) string {

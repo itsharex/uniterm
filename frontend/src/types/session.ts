@@ -62,6 +62,10 @@ export interface ConnectionConfig {
   rdpQuality?: 'high' | 'balanced' | 'low'
   // Local terminal shell path (for WSL, `wsl://<distro>` carries the distro)
   shellPath?: string
+  // Extra command-line arguments appended to the local shell's launch
+  // command line (WindTerm-style). For cmd.exe they are consumed by /k as
+  // the command to run; also passed through to wsl:// distros and Unix shells.
+  shellArgs?: string
   // Working directory for local terminal (defaults to user home)
   cwd?: string
   // Serial port

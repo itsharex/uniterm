@@ -394,6 +394,12 @@
             <template v-if="advGroupProtocol">
               <div class="adv-grid">
               <div class="adv-group-title">{{ t('conn.advGroupProtocol') }}</div>
+                <el-form-item v-if="form.type === 'local' || form.type === 'wsl'" :label="t('conn.shellArgs')">
+                  <el-input v-model="form.shellArgs" :placeholder="t('conn.shellArgsPlaceholder')" clearable />
+                </el-form-item>
+                <el-form-item v-if="form.type === 'local' || form.type === 'wsl'" :label="t('conn.workingDir')">
+                  <el-input v-model="form.cwd" :placeholder="t('conn.workingDirPlaceholder')" clearable />
+                </el-form-item>
                 <el-form-item v-if="isSSHAlgoType" :label="t('conn.sshAlgoMode')">
                   <el-radio-group v-model="sshAlgoMode">
                     <el-radio-button value="compatible">{{ t('conn.sshAlgoModeCompatible') }}</el-radio-button>
@@ -1134,6 +1140,8 @@ const form = reactive<ConnectionConfig>({
   localEcho: false,
   newlineMode: 'cr' as 'cr' | 'crlf',
   shellPath: '',
+  shellArgs: '',
+  cwd: '',
   smbDomain: 'WORKGROUP',
   smbShare: '',
   s3Region: 'us-east-1',
@@ -1168,7 +1176,7 @@ const advGroupNetwork = computed(() =>
   showProxy.value || showTunnel.value
 )
 const advGroupProtocol = computed(() =>
-  ['database', 'mongodb', 'redis', 'elasticsearch', 'ftp', 'vnc', 'telnet', 'rdp'].includes(form.type) ||
+  ['database', 'mongodb', 'redis', 'elasticsearch', 'ftp', 'vnc', 'telnet', 'rdp', 'local', 'wsl'].includes(form.type) ||
   isSSHAlgoType.value
 )
 const sshAlgoDialogVisible = ref(false)
@@ -1531,6 +1539,8 @@ function resetForm() {
   form.localEcho = false
   form.newlineMode = 'cr'
   form.shellPath = ''
+  form.shellArgs = ''
+  form.cwd = ''
   form.serialPort = ''
   form.serialBaudRate = 115200
   form.serialDataBits = 8
@@ -1766,6 +1776,13 @@ function normalizeForm(): ConnectionConfig {
     normalized.postLoginExpectSteps = []
   } else {
     normalized.postLoginScript = ''
+  }
+  // shellArgs/cwd only apply to local/wsl terminals; clear them when the
+  // connection is switched to another type so stale values never persist
+  // (same semantics as the key-field cleanup above).
+  if (normalized.type !== 'local' && normalized.type !== 'wsl') {
+    normalized.shellArgs = ''
+    normalized.cwd = ''
   }
   const redisSentinel = normalized.type === 'redis' && normalized.redisMode === 'sentinel'
   if (redisSentinel) {

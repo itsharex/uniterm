@@ -140,7 +140,7 @@ func (s *LocalSession) Connect(config ConnectionConfig) error {
 		shell = "/system/bin/sh"
 	}
 
-	s.cmd = exec.Command(shell, loginShellArgs(shell)...)
+	s.cmd = exec.Command(shell, append(loginShellArgs(shell), splitShellArgs(config.ShellArgs)...)...)
 	s.mu.Lock()
 	s.foregroundShell = shell
 	s.mu.Unlock()
