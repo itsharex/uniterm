@@ -338,6 +338,10 @@ Thanks to the following people for contributing code and improvements, and to ev
     <td align="center"><a href="https://github.com/etanman">@etanman</a></td>
     <td align="center"><a href="https://github.com/wuqiang57">@wuqiang57</a></td>
   </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/lijinxiao1982">@lijinxiao1982</a></td>
+    <td align="center"><a href="https://github.com/mikemikimike">@mikemikimike</a></td>
+  </tr>
 </table>
 
 ## License
