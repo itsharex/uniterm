@@ -1,4 +1,11 @@
 {
+  "settings.autoCompact": "自动压缩上下文",
+  "settings.autoCompactDesc": "达到预算时自动生成历史摘要。关闭后发送完整历史，超出模型上下文限制时请求可能失败。",
+  "settings.contextTokenBudget": "自动压缩触发预算（tokens）",
+  "settings.contextTokenBudgetDesc": "估算的系统提示、对话与工具定义总量达到此值时压缩。默认 32,000；请为模型输出预留空间。",
+  "settings.summaryModel": "摘要模型",
+  "settings.summaryModelDesc": "使用单独的已配置模型生成上下文摘要；该模型被删除时回退到当前对话模型。",
+  "settings.summaryModelCurrent": "跟随当前对话模型",
   "remoteDesktop.customRegions": "自定义区域",
   "remoteDesktop.createRegion": "创建自定义区域…",
   "remoteDesktop.regionNumber": "区域 {n}",

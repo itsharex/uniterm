@@ -132,8 +132,11 @@ type AIModelConfig struct {
 }
 
 type AISettings struct {
-	MaxTurns *int            `json:"maxTurns"`
-	Models   []AIModelConfig `json:"models"`
+	MaxTurns           *int            `json:"maxTurns"`
+	AutoCompact        *bool           `json:"autoCompact,omitempty"`
+	ContextTokenBudget int             `json:"contextTokenBudget,omitempty"`
+	SummaryModelID     string          `json:"summaryModelId,omitempty"`
+	Models             []AIModelConfig `json:"models"`
 	// Read only for migration to local_state.json. New clients omit this field.
 	ActiveModelID string `json:"activeModelId,omitempty"`
 }
