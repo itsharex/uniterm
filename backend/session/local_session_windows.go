@@ -282,7 +282,13 @@ func (s *LocalSession) Connect(config ConnectionConfig) error {
 				isMSYSBash = true
 			}
 		} else {
-			cmd = exec.Command(shell)
+			// Mirror the ConPTY command line: cmd.exe gets /k there too, so
+			// the pipe fallback must not silently drop it.
+			if strings.Contains(lowerShell, "cmd.exe") {
+				cmd = exec.Command(shell, "/k")
+			} else {
+				cmd = exec.Command(shell)
+			}
 			cmd.Env = os.Environ()
 		}
 	}
@@ -789,11 +795,13 @@ func (s *LocalSession) runPostLoginScript(script string) {
 		}
 	}()
 
+	// Route through s.Write so all three transports are covered — including
+	// the elevated relay (s.admin), whose sessions previously never received
+	// the script because the send closure only knew about cpty/stdin — and
+	// so non-UTF-8 encodings are applied like ordinary typed input.
 	send := func(data []byte) {
-		if s.cpty != nil {
-			s.cpty.Write(data)
-		} else if s.stdin != nil {
-			s.stdin.Write(data)
+		if err := s.Write(data); err != nil {
+			log.Writef("local: post-login write failed: %v", err)
 		}
 	}
 	s.baseSession.RunPostLoginScript(ctx, script, send, s.IsConnected)

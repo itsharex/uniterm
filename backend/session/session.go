@@ -1041,14 +1041,18 @@ func (s *baseSession) waitIdle(timeout, idle time.Duration) bool {
 
 // RunPostLoginScript sends each non-empty line of script after the terminal
 // output goes idle, and waits for idle between commands. Stops early if ctx
-// is cancelled or isConnected returns false.
+// is cancelled or isConnected returns false. Idle detection is best-effort:
+// when the timeout expires without a quiet window (slow profile loading,
+// continuous banner output, ...), the lines are still sent — PTY input is
+// buffered and the shell consumes it once ready, which beats silently
+// dropping the user's script.
 func (s *baseSession) RunPostLoginScript(ctx context.Context, script string, send func([]byte), isConnected func() bool) {
 	if strings.TrimSpace(script) == "" {
 		return
 	}
 	// Wait for shell to finish initialization.
-	if !s.waitIdle(5*time.Second, 300*time.Millisecond) {
-		return
+	if !s.waitIdle(postLoginInitTimeout, 300*time.Millisecond) {
+		log.Writef("post-login: no idle window after %s, sending script anyway", postLoginInitTimeout)
 	}
 	lines := strings.Split(script, "\n")
 	for _, line := range lines {
@@ -1066,8 +1070,15 @@ func (s *baseSession) RunPostLoginScript(ctx context.Context, script string, sen
 		}
 		send([]byte(line + "\r"))
 		// Wait for command output to settle.
-		if !s.waitIdle(3*time.Second, 300*time.Millisecond) {
-			return
+		if !s.waitIdle(postLoginStepTimeout, 300*time.Millisecond) {
+			log.Writef("post-login: command output still active after %s, sending next line anyway", postLoginStepTimeout)
 		}
 	}
 }
+
+// Readiness timeouts for post-login script execution. Generous enough for
+// slow PowerShell profile loads and first-run Defender scans.
+const (
+	postLoginInitTimeout = 10 * time.Second
+	postLoginStepTimeout = 3 * time.Second
+)
