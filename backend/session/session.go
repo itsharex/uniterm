@@ -135,6 +135,13 @@ type ConnectionConfig struct {
 	RdpQuality string `json:"rdpQuality,omitempty"`
 	// Local terminal shell path
 	ShellPath string `json:"shellPath,omitempty"`
+	// Extra command-line arguments appended to the local shell's launch
+	// command line (WindTerm-style). For cmd.exe the arguments are consumed
+	// by /k as the command to run, which enables launching another terminal
+	// program with parameters. Also passed through to wsl:// distros and,
+	// split into separate argv entries, to Unix shells. Ignored for the
+	// clink:// wrapper, which builds its own command line.
+	ShellArgs string `json:"shellArgs,omitempty"`
 	// Working directory for local terminal (defaults to user home directory if empty)
 	Cwd string `json:"cwd,omitempty"`
 	// Serial port configuration
@@ -1041,14 +1048,18 @@ func (s *baseSession) waitIdle(timeout, idle time.Duration) bool {
 
 // RunPostLoginScript sends each non-empty line of script after the terminal
 // output goes idle, and waits for idle between commands. Stops early if ctx
-// is cancelled or isConnected returns false.
+// is cancelled or isConnected returns false. Idle detection is best-effort:
+// when the timeout expires without a quiet window (slow profile loading,
+// continuous banner output, ...), the lines are still sent — PTY input is
+// buffered and the shell consumes it once ready, which beats silently
+// dropping the user's script.
 func (s *baseSession) RunPostLoginScript(ctx context.Context, script string, send func([]byte), isConnected func() bool) {
 	if strings.TrimSpace(script) == "" {
 		return
 	}
 	// Wait for shell to finish initialization.
-	if !s.waitIdle(5*time.Second, 300*time.Millisecond) {
-		return
+	if !s.waitIdle(postLoginInitTimeout, 300*time.Millisecond) {
+		log.Writef("post-login: no idle window after %s, sending script anyway", postLoginInitTimeout)
 	}
 	lines := strings.Split(script, "\n")
 	for _, line := range lines {
@@ -1066,8 +1077,48 @@ func (s *baseSession) RunPostLoginScript(ctx context.Context, script string, sen
 		}
 		send([]byte(line + "\r"))
 		// Wait for command output to settle.
-		if !s.waitIdle(3*time.Second, 300*time.Millisecond) {
-			return
+		if !s.waitIdle(postLoginStepTimeout, 300*time.Millisecond) {
+			log.Writef("post-login: command output still active after %s, sending next line anyway", postLoginStepTimeout)
 		}
 	}
+}
+
+// Readiness timeouts for post-login script execution. Generous enough for
+// slow PowerShell profile loads and first-run Defender scans.
+const (
+	postLoginInitTimeout = 10 * time.Second
+	postLoginStepTimeout = 3 * time.Second
+)
+
+// splitShellArgs splits a command-line argument string on whitespace,
+// treating double-quoted segments as single arguments (Windows command-line
+// rules). Used to turn ConnectionConfig.ShellArgs into separate argv entries
+// for spawn paths that take an argument slice instead of a command line.
+func splitShellArgs(s string) []string {
+	var args []string
+	var cur strings.Builder
+	inQuote := false
+	hasArg := false
+	for _, r := range s {
+		switch {
+		case r == '"':
+			inQuote = !inQuote
+			hasArg = true
+		case r == ' ' || r == '\t':
+			if inQuote {
+				cur.WriteRune(r)
+			} else if hasArg {
+				args = append(args, cur.String())
+				cur.Reset()
+				hasArg = false
+			}
+		default:
+			cur.WriteRune(r)
+			hasArg = true
+		}
+	}
+	if hasArg {
+		args = append(args, cur.String())
+	}
+	return args
 }

@@ -20,6 +20,8 @@ import (
 	"github.com/creack/pty"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/transform"
+
+	"github.com/ys-ll/uniterm/backend/log"
 )
 
 // Mouse tracking escape sequences that terminal applications (e.g. opencode,
@@ -138,7 +140,7 @@ func (s *LocalSession) Connect(config ConnectionConfig) error {
 		shell = "/system/bin/sh"
 	}
 
-	s.cmd = exec.Command(shell, loginShellArgs(shell)...)
+	s.cmd = exec.Command(shell, append(loginShellArgs(shell), splitShellArgs(config.ShellArgs)...)...)
 	s.mu.Lock()
 	s.foregroundShell = shell
 	s.mu.Unlock()
@@ -342,7 +344,9 @@ func (s *LocalSession) runPostLoginScript(script string) {
 
 	send := func(data []byte) {
 		if s.pty != nil {
-			s.pty.Write(data)
+			if _, err := s.pty.Write(data); err != nil {
+				log.Writef("local: post-login write failed: %v", err)
+			}
 		}
 	}
 	s.baseSession.RunPostLoginScript(ctx, script, send, s.IsConnected)
