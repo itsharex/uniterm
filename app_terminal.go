@@ -1154,6 +1154,12 @@ func (a *App) panelLogTitle(panelID string) (name, host, protocol string) {
 // The log is bound to the panel, not the session \u2014 so a reconnect
 // (which creates a fresh session under the same panel) keeps writing
 // to the same file.
+// DefaultSessionLogDir exposes the OS-default session log directory so the
+// UI can open it even when no panel log is currently running.
+func (a *App) DefaultSessionLogDir() string {
+	return session.DefaultSessionLogDir()
+}
+
 func (a *App) EnableSessionOutputLog(panelID, dir string) (string, error) {
 	if panelID == "" {
 		return "", fmt.Errorf("panelID required")

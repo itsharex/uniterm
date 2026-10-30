@@ -252,7 +252,7 @@ import { getShellLabel as getShellLabelBase, parseWslFromShell } from './utils/s
 import { reconnectFileTransferPanel } from './composables/usePanelReconnect'
 import { launchConnection, launchFileBrowser, launchMonitor, launchWslFileBrowser, launchContainerFileBrowser, persistConnection, configureLauncher } from './composables/connectionLauncher'
 import { openSavedWorkspace } from './composables/savedWorkspace'
-import { installTabSnapshotSaver, restoreTabsSnapshot } from './composables/tabSnapshot'
+import { installTabSnapshotSaver, maybeRestoreLastTabs } from './composables/tabSnapshot'
 import { createWorkspaceFromSelection } from './composables/createWorkspace'
 
 const bgDataUrl = ref('')
@@ -812,7 +812,21 @@ onMounted(async () => {
   // Reopen-last-session prompt (issue #937): ask before touching tabs, then
   // start recording so the snapshot always mirrors what's open. Not awaited —
   // the dialog must not block the rest of the mount sequence.
-  maybeRestoreLastTabs()
+  maybeRestoreLastTabs(
+    count => ElMessageBox.confirm(
+      t('start.restoreTabsMessage', { count }),
+      t('start.restoreTabsTitle'),
+      {
+        confirmButtonText: t('start.restoreTabsConfirm'),
+        cancelButtonText: t('common.cancel'),
+        type: 'info'
+      }
+    ),
+    {
+      connectTerminal: (c, p) => connectTerminalSession(c, p, undefined),
+      connectMember: workspaceConnectMember
+    }
+  )
   installTabSnapshotSaver()
   // Pre-load noVNC so VNC tab switches don't pay the dynamic import cost.
   import('@novnc/novnc').then((m: any) => {
@@ -1444,37 +1458,6 @@ function closeStartAndReposition(prevTab: any): (newTabId: string) => void {
 }
 
 configureLauncher({ ensureCredentials, closeStartAndReposition })
-
-// ── Reopen last session's tabs (issue #937-4) ──
-// The snapshot itself is written continuously by installTabSnapshotSaver;
-// this is the startup half: prompt (when the setting is on) and re-open the
-// recorded tabs through the regular connect flows.
-async function maybeRestoreLastTabs() {
-  if (!settingsStore.settings.restoreTabsPrompt) return
-  const snapshot = localStateStore.state.lastTabsSnapshot
-  if (!snapshot?.tabs?.length) return
-  try {
-    await ElMessageBox.confirm(
-      t('start.restoreTabsMessage', { count: snapshot.tabs.length }),
-      t('start.restoreTabsTitle'),
-      {
-        confirmButtonText: t('start.restoreTabsConfirm'),
-        cancelButtonText: t('common.cancel'),
-        type: 'info'
-      }
-    )
-  } catch {
-    // One-shot prompt: a decline means "don't offer these tabs again", so
-    // drop the snapshot. It only re-accumulates once the user actually opens
-    // tabs (the watcher in installTabSnapshotSaver re-records on change).
-    localStateStore.update({ lastTabsSnapshot: null })
-    return // user declined
-  }
-  await restoreTabsSnapshot(snapshot, {
-    connectTerminal: (c, p) => connectTerminalSession(c, p, undefined),
-    connectMember: workspaceConnectMember
-  })
-}
 
 async function onConnect(config: ConnectionConfig, keepOpen?: boolean, wasEdit?: boolean, persist = true, targetWorkspaceId?: string) {
   // Saved workspace connection: open it as a live workspace instead of the

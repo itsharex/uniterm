@@ -1,3 +1,4 @@
+import { disposeCommandWraps } from './terminalCommandWrap'
 import { Terminal } from '@xterm/xterm'
 import { Events } from '@wailsio/runtime'
 import { FitAddon } from '@xterm/addon-fit'
@@ -15,8 +16,10 @@ import { usePanelStore } from '../stores/panelStore'
 import { useSessionStore } from '../stores/sessionStore'
 import { useZmodemStore } from '../stores/zmodemStore'
 import { queuedSessionWrite } from './sessionWriter'
+import { disposeSessionRecorder, getSessionRecorder } from './terminalRecorder'
 import type { CustomTerminalTheme } from '../types/settings'
 import { formatFontFamily } from '../utils/formatFontFamily'
+import { MIN_LINE_NUMBER_DIGITS } from '../utils/terminalGutter'
 import { installImeCompatibilityPatch } from '../utils/xtermImeCompatibility'
 import {
   bufferRowSource,
@@ -65,6 +68,8 @@ export interface ManagedTerminal {
    * the gutter's line-number and time columns. Kept on the shared terminal so
    * it survives KeepAlive and drag-across-panes. */
   lineRegistry: LineRegistryState
+  /** Largest reserved line-number digit count, shared across gutter mounts. */
+  lineNumberDigits: number
   /** Absolute-row offset accumulated from scrollback trimming, so both the
    * line-number and timestamp columns stay continuous as old lines drop off
    * the top of the buffer. */
@@ -165,6 +170,10 @@ function createMirror(sessionId: string, options: TerminalOptions, source: Termi
   mirror.unsub = Events.On('session:data', (ev: any) => {
     const payload = ev?.data
     if (!payload || payload.id !== sessionId || typeof payload.data !== 'string') return
+    // Central recording hook: the mirror receives every session:data event
+    // regardless of panel visibility, so a running recording keeps capturing
+    // output while the terminal sits in the background.
+    getSessionRecorder(sessionId).writeData(payload.data)
     // Same zmodem cancel-window swallow as sessionStore: residual binary
     // garbage from an aborted transfer must not reach the mirror buffer.
     try {
@@ -427,6 +436,7 @@ export function acquireTerminal(
       isNew: true,
       onDataGeneration: 0,
       lineRegistry: createLineRegistry(),
+      lineNumberDigits: MIN_LINE_NUMBER_DIGITS,
       lineOffset: 0,
       trimDispose: null,
       resizeDispose: null,
@@ -503,6 +513,8 @@ export function releaseTerminal(sessionId: string, ref: string): void {
     // If acquireTerminal is called within 500ms, the timer is cancelled.
     managed.disposeTimer = setTimeout(() => {
       disposeMirror(sessionId)
+      // Terminal is gone: finalize any running recording for this session.
+      void disposeSessionRecorder(sessionId)
       managed.trimDispose?.dispose()
       managed.trimDispose = null
       managed.resizeDispose?.dispose()
@@ -512,6 +524,7 @@ export function releaseTerminal(sessionId: string, ref: string): void {
       setTabProgressForSession(sessionId, null)
       managed.imeDispose?.dispose()
       managed.imeDispose = null
+      disposeCommandWraps(managed.terminal)
       managed.terminal.dispose()
       terminals.delete(sessionId)
     }, 500)
@@ -525,6 +538,8 @@ export function disposeTerminal(sessionId: string): void {
     clearTimeout(managed.disposeTimer)
   }
   disposeMirror(sessionId)
+  // Terminal is gone: finalize any running recording for this session.
+  void disposeSessionRecorder(sessionId)
   managed.trimDispose?.dispose()
   managed.trimDispose = null
   managed.resizeDispose?.dispose()
@@ -534,6 +549,7 @@ export function disposeTerminal(sessionId: string): void {
   setTabProgressForSession(sessionId, null)
   managed.imeDispose?.dispose()
   managed.imeDispose = null
+  disposeCommandWraps(managed.terminal)
   managed.terminal.dispose()
   terminals.delete(sessionId)
 }
