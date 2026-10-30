@@ -56,6 +56,10 @@ export interface ConnectionConfig {
   // "DOMAIN\user" prefix in user is used as a fallback.
   rdpDomain?: string
   rdpAdminSession?: boolean
+  // Graphics/network profile tier: 'high' (LAN experience), 'balanced'
+  // (default, broadband: wallpaper/theming off), 'low' (modem profile for
+  // low-bandwidth links). Maps to the RDP connection_type + performance flags.
+  rdpQuality?: 'high' | 'balanced' | 'low'
   // Local terminal shell path (for WSL, `wsl://<distro>` carries the distro)
   shellPath?: string
   // Working directory for local terminal (defaults to user home)
@@ -120,6 +124,10 @@ export interface ConnectionConfig {
     scaleViewport?: boolean
     viewOnly?: boolean
     showDotCursor?: boolean
+    // RDP/SPICE display zoom: 'adaptive' (fit pane), 'stretch' (fill pane,
+    // ignore aspect ratio) or a factor ("0.75"); absent falls back to the
+    // legacy scaleViewport boolean (true → 'adaptive').
+    rdpZoom?: string
   }
   desktopView?: import('../utils/vncDisplays').DesktopView
   // vncRepeaterID is forwarded to noVNC's RFB constructor as `repeaterID`.

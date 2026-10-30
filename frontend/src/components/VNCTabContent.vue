@@ -51,14 +51,8 @@
         @create-region="openRegionEditor()" @edit-region="openRegionEditor"
       />
       <span class="vnc-status-sep">|</span>
-      <span class="vnc-status-label">{{ t('vnc.scale') }}</span>
-      <el-switch
-        v-model="scaleViewport"
-        inline-prompt
-        :active-text="t('vnc.scaleOn')"
-        :inactive-text="t('vnc.scaleOff')"
-        style="--el-switch-on-color: var(--success); --el-switch-off-color: var(--text-disabled)"
-      />
+      <span class="vnc-status-label">{{ t('remoteDesktop.scale') }}</span>
+      <RemoteDesktopZoomSelect v-model="zoom" />
       <span class="vnc-status-sep">|</span>
       <span class="vnc-status-label">{{ t('vnc.viewOnly') }}</span>
       <el-switch
@@ -82,7 +76,7 @@
     </div>
     <RemoteDesktopToolbar
       v-if="isFullscreen"
-      v-model:scale-viewport="scaleViewport"
+      v-model:zoom="zoom"
       v-model:show-dot-cursor="showDotCursor"
       :host="config?.host || ''"
       :port="config?.port || 5900"
@@ -115,6 +109,7 @@ import { ref, watch, onMounted, onBeforeUnmount, onActivated, onDeactivated, nex
 import { Loader } from '@lucide/vue'
 import RemoteDesktopToolbar from './RemoteDesktopToolbar.vue'
 import RemoteDisplaySelect from './RemoteDisplaySelect.vue'
+import RemoteDesktopZoomSelect from './RemoteDesktopZoomSelect.vue'
 import DesktopRegionEditor from './DesktopRegionEditor.vue'
 import { useI18n } from '../i18n'
 import { usePanelStore } from '../stores/panelStore'
@@ -153,7 +148,7 @@ const container = ref<HTMLDivElement | null>(null)
 const isFullscreen = ref(false)
 const vncContainer = ref<HTMLDivElement | null>(null)
 const savedPassword = ref<string>('')
-const { scaleViewport, viewOnly, showDotCursor } = useRemoteDesktopPreferences(() => props.config)
+const { zoom, scaleViewport, viewOnly, showDotCursor } = useRemoteDesktopPreferences(() => props.config)
 const displayState = ref<DesktopDisplayState>({ displays: [], width: 0, height: 0, view: { selected: 'all' } })
 let displayController: ReturnType<typeof installVncDisplays> | null = null
 const regionEditor = ref<{ preview: DesktopPreview; region: DesktopRegion; editingExisting: boolean } | null>(null)
@@ -358,7 +353,7 @@ function applyRFBOptions() {
   if (!rfb) return
   displayController?.dispose()
   restorePixelScaling?.()
-  restorePixelScaling = installVncPixelScaling(rfb)
+  restorePixelScaling = installVncPixelScaling(rfb, () => zoom.value)
   restoreCursor?.()
   if (container.value) restoreCursor = installVncCursor(rfb, container.value)
   rfb.viewOnly = viewOnly.value
@@ -779,8 +774,10 @@ watch(() => props.sessionId, (newId) => {
   }
 })
 
-watch(scaleViewport, (val) => {
-  if (rfb) rfb.scaleViewport = val
+watch(zoom, () => {
+  if (!rfb) return
+  rfb.scaleViewport = scaleViewport.value
+  rfb._updateScale?.()
 })
 watch(viewOnly, (val) => {
   if (val) onFocusOut()

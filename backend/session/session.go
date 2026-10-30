@@ -70,6 +70,9 @@ type DesktopPreferences struct {
 	ScaleViewport bool `json:"scaleViewport"`
 	ViewOnly      bool `json:"viewOnly"`
 	ShowDotCursor bool `json:"showDotCursor"`
+	// RdpZoom is the RDP display zoom: "adaptive" (fit pane) or a numeric
+	// factor like "0.75"; empty falls back to ScaleViewport for legacy data.
+	RdpZoom string `json:"rdpZoom,omitempty"`
 }
 
 type ConnectionConfig struct {
@@ -123,6 +126,13 @@ type ConnectionConfig struct {
 	// equivalent of "mstsc /admin". Mapped to the ActiveX
 	// IMsRdpClientAdvancedSettings8::ConnectToAdministerServer property.
 	RdpAdminSession bool `json:"rdpAdminSession"`
+	// RdpQuality selects the graphics/network profile tier the WASM client
+	// negotiates: "high" (default, LAN experience), "balanced" (broadband:
+	// wallpaper/theming off), "low" (modem profile for low-bandwidth links).
+	// Empty keeps the "high" default. The tier only changes the RDP
+	// connection_type + performance flags sent by the webview client; the
+	// backend itself does not act on it.
+	RdpQuality string `json:"rdpQuality,omitempty"`
 	// Local terminal shell path
 	ShellPath string `json:"shellPath,omitempty"`
 	// Working directory for local terminal (defaults to user home directory if empty)
