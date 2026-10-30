@@ -403,6 +403,23 @@ func (r *Registry) Interrupt(jobID string) error {
 	return nil
 }
 
+// InterruptSession sends a terminal interrupt, then cancels the execution that
+// owned the session when the interrupt began. Snapshot before writing: the write
+// can synchronously complete that job, and a new job must not be cancelled.
+// A failed write leaves the existing execution tracked and locked.
+func (r *Registry) InterruptSession(sessionID string, sendInterrupt func() error) error {
+	r.mu.Lock()
+	job := r.jobs[r.busy[sessionID]]
+	r.mu.Unlock()
+	if err := sendInterrupt(); err != nil {
+		return err
+	}
+	if job != nil {
+		r.finish(job, StateKilled, -1, ErrInterrupted)
+	}
+	return nil
+}
+
 // Collect resumes waiting on the original job, including buffered output
 // produced between tool calls. It never sends a command to the terminal.
 func (r *Registry) Collect(sessionID string, timeout time.Duration) (*Job, bool) {
