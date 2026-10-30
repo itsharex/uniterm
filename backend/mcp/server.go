@@ -5,7 +5,7 @@
 // authenticated clients, and gates every command behind an approval dialog
 // surfaced in the UI.
 //
-// Transport: Streamable HTTP on 127.0.0.1 only, authenticated with a
+// Transport: Streamable HTTP on loopback by default (remote access is opt-in), authenticated with a
 // per-client bearer token (stored as SHA-256, shown once at creation).
 package mcp
 
@@ -17,7 +17,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -275,9 +277,9 @@ func (s *Server) SetTokens(tokens map[string]TokenInfo) {
 	s.tokens = tokens
 }
 
-// Start brings up the listener on 127.0.0.1:port. Idempotent: a running
-// server is stopped first when the port changed, or the call is a no-op.
-func (s *Server) Start(port int) error {
+// Start restarts the listener on the requested port. Remote access must be
+// explicitly enabled; otherwise both the listener and SDK restrict it to localhost.
+func (s *Server) Start(port int, allowRemote bool) error {
 	s.Stop()
 
 	srv := mcp.NewServer(&mcp.Implementation{
@@ -288,15 +290,19 @@ func (s *Server) Start(port int) error {
 
 	handler := mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
 		return srv
-	}, nil)
+	}, &mcp.StreamableHTTPOptions{DisableLocalhostProtection: allowRemote})
 
-	ln, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))
+	host := "127.0.0.1"
+	if allowRemote {
+		host = "0.0.0.0"
+	}
+	ln, err := net.Listen("tcp4", net.JoinHostPort(host, strconv.Itoa(port)))
 	if err != nil {
 		return fmt.Errorf("mcp: listen: %w", err)
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/mcp", s.authMiddleware(handler))
-	httpSrv := &http.Server{Handler: mux}
+	httpSrv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 
 	s.mu.Lock()
 	s.handler = handler
@@ -311,7 +317,7 @@ func (s *Server) Start(port int) error {
 			log.Writef("mcp: serve: %v", err)
 		}
 	}()
-	log.Writef("mcp: server listening on 127.0.0.1:%d", s.port)
+	log.Writef("mcp: server listening on %s:%d", host, s.port)
 	return nil
 }
 
@@ -342,6 +348,12 @@ type tokenNameContextKey struct{}
 // label approvals/audit entries.
 func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Validate browser origins on every method, including GET streams.
+		// CLI clients and SSH forwarding normally send no Origin header.
+		if !validRequestOrigin(r) {
+			http.Error(w, "Forbidden: invalid Origin header", http.StatusForbidden)
+			return
+		}
 		token := bearerToken(r)
 		key := HashToken(token)
 		name := ""
@@ -361,6 +373,23 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), tokenNameContextKey{}, name)))
 	})
+}
+
+func validRequestOrigin(r *http.Request) bool {
+	origins := r.Header.Values("Origin")
+	if len(origins) == 0 {
+		return true
+	}
+	if len(origins) != 1 || origins[0] == "" {
+		return false
+	}
+	origin, err := url.Parse(origins[0])
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	return err == nil && origin.Scheme == scheme && strings.EqualFold(origin.Host, r.Host) &&
+		origin.User == nil && origin.Path == "" && origin.RawQuery == "" && !origin.ForceQuery && origin.Fragment == ""
 }
 
 // bearerToken extracts the Authorization: Bearer value.
