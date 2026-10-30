@@ -1,5 +1,12 @@
 {
-  "header.connections": "Conexões",
+  "settings.autoCompact": "Compactar contexto automaticamente",
+  "settings.autoCompactDesc": "Resume mensagens antigas quando o orçamento é atingido. Quando desativado, envia o histórico completo; as solicitações podem falhar se o limite de contexto do modelo for excedido.",
+  "settings.contextTokenBudget": "Orçamento de disparo da compactação (tokens)",
+  "settings.contextTokenBudgetDesc": "Compacta quando o total estimado do prompt do sistema, da conversa e das ferramentas atinge este valor. Padrão: 32.000. Deixe espaço para a saída do modelo.",
+  "settings.summaryModel": "Modelo de resumo",
+  "settings.summaryModelDesc": "Usa um modelo configurado separadamente para os resumos de contexto. Volta ao modelo de chat atual se o modelo selecionado for excluído.",
+  "settings.summaryModelCurrent": "Usar o modelo de chat atual",
+ "header.connections": "Conexões",
   "header.newConnection": "Nova conexão",
   "header.settings": "Configurações",
   "header.menu": "Menu",

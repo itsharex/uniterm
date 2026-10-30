@@ -1,5 +1,12 @@
 {
-  "header.connections": "Verbindungen",
+  "settings.autoCompact": "Kontext automatisch komprimieren",
+  "settings.autoCompactDesc": "Ältere Nachrichten werden zusammengefasst, sobald das Budget erreicht ist. Bei Deaktivierung wird der vollständige Verlauf gesendet; Anfragen können fehlschlagen, wenn das Kontextlimit des Modells überschritten wird.",
+  "settings.contextTokenBudget": "Komprimierungsauslöser (Tokens)",
+  "settings.contextTokenBudgetDesc": "Komprimieren, wenn die geschätzte Summe aus Systemprompt, Konversation und Tools diesen Wert erreicht. Standard: 32.000. Platz für die Modellausgabe einplanen.",
+  "settings.summaryModel": "Zusammenfassungsmodell",
+  "settings.summaryModelDesc": "Verwendet ein separat konfiguriertes Modell für Kontextzusammenfassungen. Fällt auf das aktuelle Chat-Modell zurück, wenn das ausgewählte Modell gelöscht wird.",
+  "settings.summaryModelCurrent": "Aktuelles Chat-Modell verwenden",
+ "header.connections": "Verbindungen",
   "header.newConnection": "Neue Verbindung",
   "header.settings": "Einstellungen",
   "header.menu": "Menü",

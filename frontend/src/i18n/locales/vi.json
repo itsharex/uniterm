@@ -1,5 +1,12 @@
 {
-  "header.connections": "Kết nối",
+  "settings.autoCompact": "Tự động nén ngữ cảnh",
+  "settings.autoCompactDesc": "Tóm tắt các tin nhắn cũ khi đạt đến ngân sách. Khi tắt, gửi toàn bộ lịch sử; yêu cầu có thể thất bại nếu vượt quá giới hạn ngữ cảnh của mô hình.",
+  "settings.contextTokenBudget": "Ngân sách kích hoạt nén (token)",
+  "settings.contextTokenBudgetDesc": "Nén khi tổng ước tính của prompt hệ thống, hội thoại và công cụ đạt giá trị này. Mặc định: 32.000. Chừa chỗ cho đầu ra của mô hình.",
+  "settings.summaryModel": "Mô hình tóm tắt",
+  "settings.summaryModelDesc": "Sử dụng một mô hình được cấu hình riêng để tóm tắt ngữ cảnh. Quay lại mô hình trò chuyện hiện tại nếu mô hình đã chọn bị xóa.",
+  "settings.summaryModelCurrent": "Dùng mô hình trò chuyện hiện tại",
+ "header.connections": "Kết nối",
   "header.newConnection": "Kết nối mới",
   "header.settings": "Cài đặt",
   "header.menu": "Menu",
